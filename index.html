@@ -274,12 +274,21 @@
     .q-del{background:none;border:none;color:var(--t3);cursor:pointer;padding:2px 4px;border-radius:4px;font-size:13px;transition:all .2s;flex-shrink:0;}
     .q-del:hover{color:#ef4444;background:rgba(239,68,68,.1);}
 
+    .ch-btn-row{display:flex;gap:7px;margin-bottom:0;}
     .btn-add{
-      width:100%;padding:9px;border:1px dashed var(--border2);border-radius:9px;
+      flex:1;padding:9px;border:1px dashed var(--border2);border-radius:9px;
       background:transparent;color:var(--t3);font-family:'Inter',sans-serif;font-size:12px;
       cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:5px;
     }
     .btn-add:hover{color:var(--blue);border-color:var(--blue);background:rgba(59,130,246,.05);}
+    .btn-bulk{
+      flex:1;padding:9px;border:1px dashed rgba(6,182,212,.4);border-radius:9px;
+      background:transparent;color:rgba(6,182,212,.75);font-family:'Inter',sans-serif;font-size:12px;
+      cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:5px;
+      position:relative;overflow:hidden;
+    }
+    .btn-bulk input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+    .btn-bulk:hover{color:var(--cyan);border-color:var(--cyan);background:rgba(6,182,212,.07);}
 
     .add-form{margin-top:10px;display:none;flex-direction:column;gap:7px;}
     .add-form.show{display:flex;}
@@ -292,6 +301,56 @@
     .f-row{display:flex;gap:7px;}
     .btn-fs{flex:1;padding:8px;background:var(--g1);border:none;border-radius:7px;color:white;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;}
     .btn-fc{padding:8px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;color:var(--t3);font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;}
+
+    /* ── BULK UPLOAD MODAL ── */
+    .bulk-modal-box{
+      background:var(--card);border:1px solid var(--border2);border-radius:20px;
+      padding:26px;width:96%;max-width:860px;max-height:90vh;overflow-y:auto;
+    }
+    .bulk-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+    .bulk-modal-title{font-size:16px;font-weight:700;}
+    .bulk-sub{font-size:13px;color:var(--t3);margin-bottom:18px;}
+    .bulk-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+      gap:14px;
+      margin-bottom:20px;
+    }
+    .bulk-item{
+      background:var(--bg2);border:1px solid var(--border);
+      border-radius:12px;overflow:hidden;position:relative;
+      animation:fadeUp .25s ease;
+    }
+    .bulk-item-img{width:100%;height:150px;object-fit:cover;display:block;}
+    .bulk-item-body{padding:10px;}
+    .bulk-item-name{font-size:11px;color:var(--t3);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .bulk-item-textarea{
+      width:100%;padding:7px 9px;background:var(--bg);border:1px solid var(--border);
+      border-radius:7px;color:var(--t1);font-family:'Inter',sans-serif;font-size:12px;
+      outline:none;resize:none;height:56px;line-height:1.5;
+    }
+    .bulk-item-textarea:focus{border-color:var(--blue);}
+    .bulk-item-del{
+      position:absolute;top:6px;right:6px;
+      width:24px;height:24px;border-radius:50%;
+      background:rgba(239,68,68,.85);border:none;color:white;
+      font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+      line-height:1;
+    }
+    .bulk-item-del:hover{background:#ef4444;}
+    .bulk-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+    .bulk-count-tag{font-size:13px;color:var(--t2);}
+    .bulk-count-tag strong{color:var(--cyan);}
+    .bulk-actions{display:flex;gap:10px;}
+    .btn-bulk-save{
+      padding:12px 28px;background:var(--g1);border:none;border-radius:10px;
+      color:white;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;
+      cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:7px;
+    }
+    .btn-bulk-save:hover{opacity:.88;transform:translateY(-1px);}
+    .btn-bulk-save:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+    .btn-bulk-cancel{padding:12px 18px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--t3);font-family:'Inter',sans-serif;font-size:13px;cursor:pointer;}
+    .bulk-empty{text-align:center;padding:40px;color:var(--t3);font-size:14px;}
 
     /* Admin generate section */
     .admin-gen-section{
@@ -441,6 +500,25 @@
     <!-- Chapter cards -->
     <div class="admin-grid" id="adminGrid"></div>
 
+    <!-- BULK UPLOAD MODAL -->
+    <div class="modal-overlay" id="bulkModal">
+      <div class="bulk-modal-box">
+        <div class="bulk-modal-head">
+          <div class="bulk-modal-title">📦 Upload hàng loạt — <span id="bulkChName" style="color:var(--cyan)"></span></div>
+          <button class="btn-mclose" onclick="closeModal('bulkModal')">✕</button>
+        </div>
+        <div class="bulk-sub" id="bulkSub">Mỗi ảnh sẽ thành 1 câu hỏi. Thêm chú thích bên dưới từng ảnh nếu cần.</div>
+        <div class="bulk-grid" id="bulkGrid"></div>
+        <div class="bulk-footer">
+          <div class="bulk-count-tag">Đã chọn: <strong id="bulkCountLabel">0</strong> ảnh</div>
+          <div class="bulk-actions">
+            <button class="btn-bulk-cancel" onclick="closeModal('bulkModal')">Huỷ</button>
+            <button class="btn-bulk-save" id="btnBulkSave" onclick="saveBulk()">✅ Lưu tất cả vào ngân hàng</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Generate section -->
     <div class="admin-gen-section">
       <div class="admin-gen-title">⚙️ Cài đặt đề thi</div>
@@ -541,6 +619,25 @@ function loadCfg(){
 
 function saveBank(){ localStorage.setItem('examgen2_bank', JSON.stringify(bank)); updateBadge(); }
 
+// Nén ảnh xuống max 1200px, JPEG 0.82 — giảm ~90% dung lượng
+function compressImage(dataUrl){
+  return new Promise(function(resolve){
+    var img = new Image();
+    img.onload = function(){
+      var MAX = 1200;
+      var w = img.width, h = img.height;
+      if(w > MAX){ h = Math.round(h * MAX / w); w = MAX; }
+      if(h > MAX){ w = Math.round(w * MAX / h); h = MAX; }
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = function(){ resolve(dataUrl); }; // fallback
+    img.src = dataUrl;
+  });
+}
+
 function updateBadge(){
   var t=Object.values(bank).reduce(function(s,a){return s+a.length;},0);
   document.getElementById('totalBadge').textContent='Ngân hàng: '+t+' câu';
@@ -577,6 +674,102 @@ function closeModal(id){
 document.querySelectorAll('.modal-overlay').forEach(function(m){
   m.addEventListener('click', function(e){ if(e.target===this) this.classList.remove('show'); });
 });
+
+// ═══════════════════════════════════════
+// BULK UPLOAD
+// ═══════════════════════════════════════
+var bulkChId = null;
+var bulkItems = []; // [{file, dataUrl, name}]
+
+function triggerBulk(chId){
+  var inp = document.getElementById('bulkInput-'+chId);
+  if(inp){ inp.value=''; inp.click(); }
+}
+
+function openBulkModal(event, chId){
+  var files = Array.from(event.target.files);
+  event.target.value = '';
+  if(!files.length) return;
+
+  bulkChId = chId;
+  bulkItems = [];
+  var ch = CHAPTERS.find(function(c){ return c.id===chId; });
+  document.getElementById('bulkChName').textContent = ch.name;
+  document.getElementById('bulkGrid').innerHTML = '<div style="text-align:center;padding:30px;color:var(--t3);">⏳ Đang tải ảnh...</div>';
+  document.getElementById('bulkCountLabel').textContent = '0';
+  document.getElementById('btnBulkSave').disabled = true;
+  document.getElementById('bulkModal').classList.add('show');
+
+  var loaded = 0;
+  files.forEach(function(file, idx){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      bulkItems.push({ dataUrl: e.target.result, name: file.name, text: '' });
+      loaded++;
+      if(loaded === files.length){
+        renderBulkGrid();
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderBulkGrid(){
+  var grid = document.getElementById('bulkGrid');
+  document.getElementById('bulkCountLabel').textContent = bulkItems.length;
+  document.getElementById('btnBulkSave').disabled = bulkItems.length === 0;
+
+  if(!bulkItems.length){
+    grid.innerHTML = '<div class="bulk-empty">Không có ảnh nào.</div>';
+    return;
+  }
+
+  grid.innerHTML = '';
+  bulkItems.forEach(function(item, idx){
+    var div = document.createElement('div');
+    div.className = 'bulk-item';
+    div.id = 'bulk-item-'+idx;
+    div.innerHTML =
+      '<img class="bulk-item-img" id="bimg-'+idx+'" src="'+item.dataUrl+'" alt="'+esc(item.name)+'" />'+
+      '<button class="bulk-item-del" onclick="removeBulkItem('+idx+')">✕</button>'+
+      '<div class="bulk-item-body">'+
+        '<div class="bulk-item-name">'+esc(item.name)+'</div>'+
+        '<textarea class="bulk-item-textarea" placeholder="Chú thích / câu hỏi (tuỳ chọn)..." '+
+          'oninput="bulkItems['+idx+'].text=this.value"></textarea>'+
+      '</div>';
+    grid.appendChild(div);
+  });
+}
+
+function removeBulkItem(idx){
+  bulkItems.splice(idx, 1);
+  renderBulkGrid();
+}
+
+function saveBulk(){
+  if(!bulkChId || !bulkItems.length) return;
+  var btn = document.getElementById('btnBulkSave');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Đang nén & lưu...';
+
+  // Nén tất cả ảnh song song rồi lưu một lần
+  var promises = bulkItems.map(function(item){
+    return compressImage(item.dataUrl).then(function(compressed){
+      return { txt: item.text.trim(), img: compressed, id: Date.now()+Math.random() };
+    });
+  });
+
+  Promise.all(promises).then(function(qs){
+    qs.forEach(function(q){ bank[bulkChId].push(q); });
+    saveBank();
+    renderQList(bulkChId);
+    closeModal('bulkModal');
+    toast('Đã lưu '+qs.length+' câu hỏi vào Chương '+bulkChId+'! 🎉');
+    bulkItems = [];
+    btn.innerHTML = '✅ Lưu tất cả vào ngân hàng';
+    btn.disabled = false;
+  });
+}
 
 // ═══════════════════════════════════════
 // ADMIN AUTH
@@ -646,7 +839,11 @@ function buildChCard(ch){
       '<div class="ch-stat"><div class="ch-stat-num" id="icnt-'+ch.id+'">'+qs.filter(function(q){return q.img;}).length+'</div><div class="ch-stat-lbl">Có ảnh</div></div>'+
     '</div>'+
     '<div class="q-list" id="ql-'+ch.id+'"></div>'+
-    '<button class="btn-add" onclick="toggleAddForm('+ch.id+')">＋ Thêm câu hỏi</button>'+
+    '<div class="ch-btn-row">'+
+      '<button class="btn-add" onclick="toggleAddForm('+ch.id+')">＋ 1 câu</button>'+
+      '<button class="btn-bulk" onclick="triggerBulk('+ch.id+')">📦 Nhiều ảnh</button>'+
+    '</div>'+
+    '<input type="file" accept="image/*" multiple id="bulkInput-'+ch.id+'" style="display:none;" onchange="openBulkModal(event,'+ch.id+')" />'+
     '<div class="add-form" id="af-'+ch.id+'">'+
       '<textarea class="f-textarea" id="qt-'+ch.id+'" placeholder="Nhập nội dung câu hỏi..." rows="3"></textarea>'+
       '<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t3);">'+
@@ -708,9 +905,11 @@ function saveQ(chId){
   if(imgEl.files && imgEl.files[0]){
     var r=new FileReader();
     r.onload=function(e){
-      q.img=e.target.result;
-      bank[chId].push(q); saveBank(); renderQList(chId); resetForm(chId);
-      toast('Đã thêm câu hỏi vào Chương '+chId+'!');
+      compressImage(e.target.result).then(function(compressed){
+        q.img=compressed;
+        bank[chId].push(q); saveBank(); renderQList(chId); resetForm(chId);
+        toast('Đã thêm câu hỏi vào Chương '+chId+'!');
+      });
     };
     r.readAsDataURL(imgEl.files[0]);
   } else {
