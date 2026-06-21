@@ -460,7 +460,7 @@
 <!-- FOOTER -->
 <footer>
   <div class="footer-credit">
-    <strong>MSSV: 25151***</strong> · <span class="footer-id">Nhóm 12</span>
+    <strong>MSSV: 25251134</strong> · <span class="footer-id">Nhóm 12</span>
   </div>
 </footer>
 
@@ -497,7 +497,13 @@
 // ═══════════════════════════════════════
 // CONFIG & DATA
 // ═══════════════════════════════════════
-var ADMIN_PW = 'khang25251134'; // mật khẩu quản trị
+// SHA-256 của mật khẩu thực — không lộ pass gốc trong source
+var ADMIN_PW_HASH = '376358f950081511b30af768ec9170e0f40f2662942c426666c5ace3a9965a18';
+
+async function hashStr(str){
+  var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+}
 
 var CHAPTERS = [
   {id:2,name:'Chương 2',color:'#3b82f6',group:'req'},
@@ -583,9 +589,10 @@ function openAdminGate(){
   setTimeout(function(){ document.getElementById('pwInput').focus(); },150);
 }
 
-function checkPassword(){
+async function checkPassword(){
   var pw = document.getElementById('pwInput').value;
-  if(pw === ADMIN_PW){
+  var hashed = await hashStr(pw);
+  if(hashed === ADMIN_PW_HASH){
     closeModal('pwModal');
     adminOpen=true;
     showAdmin();
