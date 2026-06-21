@@ -246,6 +246,7 @@
     .ch-card[data-ch="6"]::before{background:linear-gradient(90deg,#10b981,#34d399);}
     .ch-card[data-ch="7"]::before{background:linear-gradient(90deg,#ec4899,#f472b6);}
     .ch-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.3);}
+    .ch-card.drag-over{border-color:var(--cyan);background:rgba(6,182,212,.05);transform:scale(1.02);box-shadow:0 0 20px rgba(6,182,212,.2);}
 
     .ch-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
     .ch-label{display:flex;align-items:center;gap:9px;}
@@ -494,7 +495,15 @@
   <div class="admin-panel" id="adminPanel">
     <div class="admin-header-bar">
       <div class="admin-badge">🔐 Chế độ quản trị</div>
-      <button class="btn-logout" onclick="logout()">Đăng xuất</button>
+      <div style="display:flex;gap:10px;">
+        <label class="btn-sm btn-regen" style="background:rgba(245,158,11,.15);color:#fcd34d;cursor:pointer;" title="Chọn thư mục 'image' chứa các thư mục con c2, c3... để nạp tự động toàn bộ ảnh (lưu đường dẫn, không gây nặng máy)">
+          📂 Nạp từ thư mục
+          <input type="file" webkitdirectory directory multiple style="display:none;" onchange="importFolder(event)" />
+        </label>
+        <button class="btn-sm btn-regen" style="background:rgba(16,185,129,.15);color:#6ee7b7;" onclick="downloadWebWithData()" title="Tải file HTML này về máy kèm toàn bộ dữ liệu câu hỏi. Gửi file này qua điện thoại mở lên là có sẵn đề thi!">💾 Xuất Web (Kèm dữ liệu)</button>
+        <button class="btn-sm btn-regen" style="background:rgba(59,130,246,.15);color:#93c5fd;" onclick="importJSON()">📥 Nhập JSON</button>
+        <button class="btn-logout" onclick="logout()">Đăng xuất</button>
+      </div>
     </div>
 
     <!-- Chapter cards -->
@@ -536,7 +545,11 @@
 </div><!-- /main -->
 
 <!-- FOOTER -->
-
+<footer>
+  <div class="footer-credit">
+    <strong>MSSV: 25251134</strong> · <span class="footer-id">Nhóm 12</span>
+  </div>
+</footer>
 
 <!-- PASSWORD MODAL -->
 <div class="modal-overlay" id="pwModal">
@@ -588,14 +601,29 @@ var CHAPTERS = [
   {id:7,name:'Chương 7',color:'#ec4899',group:'req'},
 ];
 
-var bank = JSON.parse(localStorage.getItem('examgen2_bank') || '{}');
+// Khối dữ liệu nhúng (dùng cho việc xuất bản web tĩnh)
+var DEFAULT_BANK = /*==BANK_DATA==*/null/*==/BANK_DATA==*/;
+var DEFAULT_CFG = /*==CFG_DATA==*/null/*==/CFG_DATA==*/;
+
+var bank = JSON.parse(localStorage.getItem('examgen2_bank') || 'null');
+if(!bank && DEFAULT_BANK) bank = DEFAULT_BANK;
+if(!bank) bank = {};
 CHAPTERS.forEach(function(c){ if(!bank[c.id]) bank[c.id]=[]; });
 
 var adminOpen = false;
 var currentExam = null;
 
 // saved config
-var cfg = JSON.parse(localStorage.getItem('examgen2_cfg') || '{}');
+var cfg = JSON.parse(localStorage.getItem('examgen2_cfg') || 'null');
+if(!cfg && DEFAULT_CFG) cfg = DEFAULT_CFG;
+if(!cfg) cfg = {};
+CHAPTERS.forEach(function(c){ if(!bank[c.id]) bank[c.id]=[]; });
+
+var adminOpen = false;
+var currentExam = null;
+
+// saved config
+
 
 function saveCfg(){
   cfg.subject = (document.getElementById('cfSubject')||{}).value || cfg.subject || '';
@@ -683,9 +711,17 @@ function triggerBulk(chId){
 }
 
 function openBulkModal(event, chId){
-  var files = Array.from(event.target.files);
-  event.target.value = '';
-  if(!files.length) return;
+  var files = [];
+  if(event.dataTransfer && event.dataTransfer.files) files = Array.from(event.dataTransfer.files);
+  else if(event.target && event.target.files) files = Array.from(event.target.files);
+  
+  if(event.target && event.target.value) event.target.value = '';
+  files = files.filter(function(f){ return f.type.startsWith('image/'); });
+  
+  if(!files.length){
+    if(event.type==='drop') toast('Chỉ hỗ trợ file ảnh!','err');
+    return;
+  }
 
   bulkChId = chId;
   bulkItems = [];
@@ -822,6 +858,12 @@ function buildChCard(ch){
   var card=document.createElement('div');
   card.className='ch-card';
   card.setAttribute('data-ch',ch.id);
+  
+  // DRAG & DROP SUPPORT
+  card.ondragover = function(e){ e.preventDefault(); card.classList.add('drag-over'); };
+  card.ondragleave = function(e){ e.preventDefault(); card.classList.remove('drag-over'); };
+  card.ondrop = function(e){ e.preventDefault(); card.classList.remove('drag-over'); openBulkModal(e, ch.id); };
+  
   card.innerHTML=
     '<div class="ch-head">'+
       '<div class="ch-label">'+
@@ -1066,8 +1108,86 @@ async function exportPDF(){
 }
 
 // ═══════════════════════════════════════
-// INIT
 // ═══════════════════════════════════════
+// IMPORT & EXPORT DATA
+// ═══════════════════════════════════════
+function downloadWebWithData(){
+  fetch(window.location.href)
+    .then(function(res){ return res.text(); })
+    .then(function(html){
+      var bStr = JSON.stringify(bank).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+      var cStr = JSON.stringify(cfg).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+      
+      var newHtml = html.replace('/*==BANK_DATA==*/null/*==/BANK_DATA==*/', '/*==BANK_DATA==*/JSON.parse("'+bStr+'")/*==/BANK_DATA==*/')
+                        .replace('/*==CFG_DATA==*/null/*==/CFG_DATA==*/', '/*==CFG_DATA==*/JSON.parse("'+cStr+'")/*==/CFG_DATA==*/');
+      
+      var blob = new Blob([newHtml], {type: 'text/html'});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'ExamGen_CoDuLieu.html';
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('Đã tải HTML kèm dữ liệu! Mở file này trên điện thoại sẽ có sẵn đề. 🎉');
+    })
+    .catch(function(e){ toast('Lỗi tải file gốc. Đang dùng cấu trúc DOM hiện tại.','inf'); console.error(e); });
+}
+
+function importJSON(){
+  var inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json';
+  inp.onchange = function(e){
+    var file = e.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(re){
+      try{
+        var data = JSON.parse(re.target.result);
+        if(data.bank){ bank = data.bank; saveBank(); }
+        if(data.cfg){ cfg = data.cfg; saveCfg(); loadCfg(); }
+        renderAdminGrid();
+        toast('Đã nhập dữ liệu thành công!');
+      }catch(err){ toast('File JSON không hợp lệ!','err'); }
+    };
+    reader.readAsText(file);
+  };
+  inp.click();
+}
+
+function importFolder(event){
+  var files = Array.from(event.target.files);
+  event.target.value = '';
+  if(!files.length) return;
+
+  var added = 0;
+  // Tìm cấu trúc như: image/c2/... hoặc thư mục c2/...
+  var regex = /(?:^|\/)(c[2-7])\//i;
+
+  files.forEach(function(f){
+    if(!f.type.startsWith('image/')) return;
+    var path = f.webkitRelativePath; // ví dụ: "image/c2/anh1.jpg"
+    var match = path.match(regex);
+    if(match){
+      var chId = parseInt(match[1].substring(1)); // Lấy số từ "c2" -> 2
+      bank[chId].push({
+        txt: '',
+        img: path, // LƯU TRỰC TIẾP ĐƯỜNG DẪN TƯƠNG ĐỐI
+        id: Date.now() + Math.random()
+      });
+      added++;
+    }
+  });
+
+  if(added > 0){
+    saveBank();
+    renderAdminGrid();
+    toast('Đã nạp tự động ' + added + ' ảnh từ thư mục vào hệ thống! 🎉');
+  } else {
+    toast('Không tìm thấy ảnh nào trong các thư mục con c2...c7', 'err');
+  }
+}
+
+// INIT
 updateBadge();
 </script>
 </body>
