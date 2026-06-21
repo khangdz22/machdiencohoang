@@ -3,788 +3,822 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hệ Thống Tạo Đề Thi Ngẫu Nhiên</title>
-  <meta name="description" content="Tạo đề thi ngẫu nhiên từ ngân hàng câu hỏi theo chương, xuất PDF chuyên nghiệp" />
+  <title>Hệ Thống Đề Thi Ngẫu Nhiên</title>
+  <meta name="description" content="Xem đề thi ngẫu nhiên theo chương" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <style>
     :root {
-      --bg-primary: #0a0e1a;
-      --bg-secondary: #0f1629;
-      --bg-card: #141c2e;
-      --accent-blue: #3b82f6;
-      --accent-purple: #8b5cf6;
-      --accent-cyan: #06b6d4;
-      --accent-green: #10b981;
-      --accent-orange: #f59e0b;
-      --accent-pink: #ec4899;
-      --text-primary: #f0f4ff;
-      --text-secondary: #94a3b8;
-      --text-muted: #64748b;
-      --border: #1e2d4a;
-      --border-hover: #2d4270;
-      --gradient-1: linear-gradient(135deg, #3b82f6, #8b5cf6);
-      --shadow-card: 0 4px 24px rgba(0,0,0,0.4);
+      --bg: #09111f;
+      --bg2: #0e1a2e;
+      --bg3: #131f35;
+      --card: #111d32;
+      --blue: #3b82f6;
+      --purple: #8b5cf6;
+      --cyan: #06b6d4;
+      --green: #10b981;
+      --orange: #f59e0b;
+      --pink: #ec4899;
+      --t1: #eef2ff;
+      --t2: #94a3b8;
+      --t3: #5a6a85;
+      --border: #1c2d47;
+      --border2: #28406a;
+      --g1: linear-gradient(135deg,#3b82f6,#8b5cf6);
+      --g2: linear-gradient(135deg,#06b6d4,#3b82f6);
     }
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:'Inter',sans-serif; background:var(--bg-primary); color:var(--text-primary); min-height:100vh; overflow-x:hidden; }
-    body::before {
-      content:''; position:fixed; inset:0;
-      background: radial-gradient(ellipse 80% 50% at 20% 10%,rgba(59,130,246,.08) 0%,transparent 60%),
-                  radial-gradient(ellipse 60% 40% at 80% 80%,rgba(139,92,246,.07) 0%,transparent 60%);
-      pointer-events:none; z-index:0;
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh;overflow-x:hidden;}
+
+    body::before{
+      content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+      background:
+        radial-gradient(ellipse 70% 50% at 15% 10%,rgba(59,130,246,.09) 0%,transparent 60%),
+        radial-gradient(ellipse 55% 45% at 85% 85%,rgba(139,92,246,.08) 0%,transparent 60%);
     }
 
-    /* HEADER */
-    .header { position:relative;z-index:10;padding:22px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);backdrop-filter:blur(20px);background:rgba(10,14,26,.85); }
-    .logo { display:flex;align-items:center;gap:14px; }
-    .logo-icon { width:42px;height:42px;border-radius:12px;background:var(--gradient-1);display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 20px rgba(59,130,246,.4); }
-    .logo-text h1 { font-size:19px;font-weight:700;background:var(--gradient-1);-webkit-background-clip:text;-webkit-text-fill-color:transparent; }
-    .logo-text p { font-size:12px;color:var(--text-muted); }
-    .header-stats { display:flex;gap:16px; }
-    .stat-badge { display:flex;align-items:center;gap:8px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:7px 14px;font-size:13px; }
-    .stat-badge .dot { width:7px;height:7px;border-radius:50%;background:var(--accent-green);box-shadow:0 0 6px var(--accent-green);animation:pulse 2s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(1.3)} }
-
-    /* LAYOUT */
-    .container { position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:36px 40px 80px; }
-    .tabs { display:flex;gap:4px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:13px;padding:5px;margin-bottom:36px;width:fit-content; }
-    .tab-btn { padding:9px 22px;border:none;border-radius:9px;background:transparent;color:var(--text-secondary);font-family:'Inter',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all .25s ease; }
-    .tab-btn:hover { color:var(--text-primary);background:var(--bg-card); }
-    .tab-btn.active { background:var(--gradient-1);color:white;box-shadow:0 4px 14px rgba(59,130,246,.35); }
-    .tab-content { display:none; }
-    .tab-content.active { display:block;animation:fadeIn .3s ease; }
-    @keyframes fadeIn { from{opacity:0;transform:translateY(7px)} to{opacity:1;transform:none} }
-
-    .section-title { font-size:25px;font-weight:700;margin-bottom:5px; }
-    .section-sub { font-size:14px;color:var(--text-secondary);margin-bottom:24px; }
-
-    .highlight-group { display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:#fbbf24;margin-bottom:20px; }
-
-    /* CHAPTER GRID */
-    .chapter-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:20px; }
-
-    .chapter-card { background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:22px;transition:all .3s;position:relative;overflow:hidden; }
-    .chapter-card::before { content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:16px 16px 0 0; }
-    .chapter-card[data-ch="2"]::before { background:linear-gradient(90deg,#3b82f6,#60a5fa); }
-    .chapter-card[data-ch="3"]::before { background:linear-gradient(90deg,#8b5cf6,#a78bfa); }
-    .chapter-card[data-ch="4"]::before { background:linear-gradient(90deg,#f59e0b,#fbbf24); }
-    .chapter-card[data-ch="5"]::before { background:linear-gradient(90deg,#f97316,#fb923c); }
-    .chapter-card[data-ch="6"]::before { background:linear-gradient(90deg,#10b981,#34d399); }
-    .chapter-card[data-ch="7"]::before { background:linear-gradient(90deg,#ec4899,#f472b6); }
-    .chapter-card:hover { border-color:var(--border-hover);transform:translateY(-2px);box-shadow:var(--shadow-card); }
-
-    .chapter-head { display:flex;align-items:center;justify-content:space-between;margin-bottom:14px; }
-    .chapter-label { display:flex;align-items:center;gap:10px; }
-    .chapter-num { width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px; }
-    .chapter-card[data-ch="2"] .chapter-num { background:rgba(59,130,246,.2);color:#60a5fa; }
-    .chapter-card[data-ch="3"] .chapter-num { background:rgba(139,92,246,.2);color:#a78bfa; }
-    .chapter-card[data-ch="4"] .chapter-num { background:rgba(245,158,11,.2);color:#fbbf24; }
-    .chapter-card[data-ch="5"] .chapter-num { background:rgba(249,115,22,.2);color:#fb923c; }
-    .chapter-card[data-ch="6"] .chapter-num { background:rgba(16,185,129,.2);color:#34d399; }
-    .chapter-card[data-ch="7"] .chapter-num { background:rgba(236,72,153,.2);color:#f472b6; }
-    .chapter-name { font-size:14px;font-weight:600; }
-    .chapter-group-tag { font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;letter-spacing:.5px; }
-    .tag-required { background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.3); }
-    .tag-optional { background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.3); }
-
-    .chapter-stats { display:flex;gap:10px;margin-bottom:14px; }
-    .ch-stat { flex:1;background:var(--bg-secondary);border-radius:9px;padding:9px;text-align:center; }
-    .ch-stat-num { font-size:20px;font-weight:700; }
-    .ch-stat-label { font-size:10px;color:var(--text-muted);margin-top:1px; }
-
-    /* Buttons row */
-    .card-btn-row { display:flex;gap:8px;margin-top:4px; }
-
-    .add-question-btn {
-      flex:1;padding:9px;border:1px dashed var(--border-hover);border-radius:9px;background:transparent;
-      color:var(--text-muted);font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;transition:all .2s;
-      display:flex;align-items:center;justify-content:center;gap:5px;
+    /* ── HEADER ── */
+    header{
+      position:relative;z-index:10;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:20px 48px;
+      background:rgba(9,17,31,.85);
+      border-bottom:1px solid var(--border);
+      backdrop-filter:blur(20px);
     }
-    .add-question-btn:hover { color:var(--accent-blue);border-color:var(--accent-blue);background:rgba(59,130,246,.05); }
+    .logo{display:flex;align-items:center;gap:14px;}
+    .logo-icon{
+      width:42px;height:42px;border-radius:12px;
+      background:var(--g1);display:flex;align-items:center;justify-content:center;
+      font-size:20px;box-shadow:0 0 22px rgba(59,130,246,.4);
+    }
+    .logo-text h1{font-size:18px;font-weight:800;background:var(--g1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+    .logo-text p{font-size:11px;color:var(--t3);margin-top:1px;}
 
-    .ocr-scan-btn {
-      flex:1;padding:9px;border:1px dashed rgba(6,182,212,.4);border-radius:9px;background:transparent;
-      color:rgba(6,182,212,.7);font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;transition:all .2s;
-      display:flex;align-items:center;justify-content:center;gap:5px;
+    .header-right{display:flex;align-items:center;gap:14px;}
+    .total-badge{
+      display:flex;align-items:center;gap:7px;
+      background:var(--card);border:1px solid var(--border);
+      border-radius:10px;padding:7px 14px;font-size:13px;color:var(--t2);
+    }
+    .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 7px var(--green);animation:pulse 2s infinite;}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
+
+    /* Admin link - subtle */
+    .admin-link{
+      font-size:11px;color:var(--t3);cursor:pointer;
+      padding:5px 10px;border-radius:7px;border:1px solid transparent;
+      transition:all .2s;user-select:none;
+    }
+    .admin-link:hover{color:var(--t2);border-color:var(--border);}
+
+    /* ── MAIN ── */
+    .main{position:relative;z-index:1;max-width:1060px;margin:0 auto;padding:48px 32px 100px;}
+
+    /* ── STUDENT VIEW ── */
+    .student-hero{
+      text-align:center;margin-bottom:48px;
+    }
+    .student-hero h2{
+      font-size:36px;font-weight:800;
+      background:linear-gradient(135deg,#60a5fa,#a78bfa,#34d399);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      margin-bottom:12px;line-height:1.2;
+    }
+    .student-hero p{font-size:15px;color:var(--t2);max-width:480px;margin:0 auto;}
+
+    .exam-structure{
+      display:flex;justify-content:center;gap:10px;flex-wrap:wrap;
+      margin:28px 0 40px;
+    }
+    .struct-chip{
+      display:flex;align-items:center;gap:7px;
+      padding:8px 16px;border-radius:20px;
+      border:1px solid var(--border);background:var(--card);
+      font-size:13px;font-weight:500;color:var(--t2);
+    }
+    .struct-chip .dot{width:8px;height:8px;border-radius:50%;}
+
+    .btn-big-generate{
+      display:flex;align-items:center;justify-content:center;gap:12px;
+      width:100%;max-width:420px;margin:0 auto 48px;
+      padding:18px 32px;border:none;border-radius:16px;
+      background:var(--g1);color:white;
+      font-family:'Inter',sans-serif;font-size:18px;font-weight:700;
+      cursor:pointer;transition:all .3s;
+      box-shadow:0 6px 28px rgba(59,130,246,.4);
       position:relative;overflow:hidden;
     }
-    .ocr-scan-btn input[type=file] { position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%; }
-    .ocr-scan-btn:hover { color:var(--accent-cyan);border-color:var(--accent-cyan);background:rgba(6,182,212,.08); }
+    .btn-big-generate::before{
+      content:'';position:absolute;inset:0;
+      background:linear-gradient(135deg,rgba(255,255,255,.12),transparent);
+      border-radius:16px;
+    }
+    .btn-big-generate:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(59,130,246,.55);}
+    .btn-big-generate:active{transform:translateY(-1px);}
+    .btn-big-generate .btn-icon{font-size:22px;}
 
-    /* Question list */
-    .question-list { display:flex;flex-direction:column;gap:7px;margin-bottom:12px; }
-    .question-item { display:flex;align-items:center;gap:9px;background:var(--bg-secondary);border-radius:9px;padding:9px 11px;font-size:12px;animation:slideIn .2s ease; }
-    @keyframes slideIn { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:none} }
-    .q-index { width:20px;height:20px;border-radius:5px;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:10px;flex-shrink:0; }
-    .q-text { flex:1;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-    .q-img-badge { font-size:13px;cursor:pointer;flex-shrink:0; }
-    .q-del { background:none;border:none;color:var(--text-muted);cursor:pointer;padding:2px 4px;border-radius:4px;font-size:13px;transition:all .2s;flex-shrink:0; }
-    .q-del:hover { color:#ef4444;background:rgba(239,68,68,.1); }
+    /* ── EXAM CARD ── */
+    .exam-result{display:none;animation:fadeUp .4s ease;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 
-    /* Add form */
-    .add-form { margin-top:10px;display:none;flex-direction:column;gap:8px;animation:fadeIn .2s ease; }
-    .add-form.show { display:flex; }
-    .form-input { width:100%;padding:9px 13px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:9px;color:var(--text-primary);font-family:'Inter',sans-serif;font-size:13px;outline:none;transition:border-color .2s;resize:vertical;min-height:56px; }
-    .form-input:focus { border-color:var(--accent-blue); }
-    .form-row { display:flex;gap:7px; }
-    .btn-save { flex:1;padding:8px;background:var(--gradient-1);border:none;border-radius:7px;color:white;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s; }
-    .btn-save:hover { opacity:.85; }
-    .btn-cancel { padding:8px 13px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:7px;color:var(--text-muted);font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;transition:all .2s; }
-    .btn-cancel:hover { color:var(--text-primary); }
+    .exam-card{
+      background:var(--card);border:1px solid var(--border);
+      border-radius:20px;overflow:hidden;
+      box-shadow:0 8px 40px rgba(0,0,0,.35);
+    }
+    .exam-card-header{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:18px 26px;
+      background:var(--bg2);border-bottom:1px solid var(--border);
+    }
+    .exam-card-title{font-size:14px;font-weight:600;color:var(--t2);}
+    .exam-meta-chips{display:flex;gap:8px;align-items:center;}
+    .meta-chip{
+      font-size:11px;font-weight:600;padding:4px 10px;
+      border-radius:20px;background:rgba(59,130,246,.15);
+      border:1px solid rgba(59,130,246,.3);color:#93c5fd;
+    }
+    .exam-card-actions{display:flex;gap:9px;}
+    .btn-sm{
+      padding:8px 16px;border-radius:9px;font-family:'Inter',sans-serif;
+      font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;
+      display:flex;align-items:center;gap:6px;border:none;
+    }
+    .btn-regen{background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3)!important;border:none;color:#c4b5fd;}
+    .btn-regen:hover{background:rgba(139,92,246,.25);}
+    .btn-pdf{background:var(--g1);color:white;box-shadow:0 2px 12px rgba(59,130,246,.3);}
+    .btn-pdf:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(59,130,246,.5);}
 
-    /* GENERATE TAB */
-    .generate-layout { display:grid;grid-template-columns:370px 1fr;gap:28px;align-items:start; }
-    .gen-panel { background:var(--bg-card);border:1px solid var(--border);border-radius:18px;padding:26px;position:sticky;top:20px; }
-    .gen-panel-title { font-size:15px;font-weight:700;margin-bottom:18px; }
-    .structure-list { display:flex;flex-direction:column;gap:9px;margin-bottom:22px; }
-    .structure-item { display:flex;align-items:center;gap:11px;padding:11px 14px;background:var(--bg-secondary);border-radius:11px;border:1px solid var(--border); }
-    .struct-ch { width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0; }
-    .struct-info { flex:1; }
-    .struct-name { font-size:13px;font-weight:500; }
-    .struct-detail { font-size:11px;color:var(--text-muted);margin-top:1px; }
-    .struct-pts { font-size:13px;font-weight:700;color:var(--accent-green); }
-    .divider { height:1px;background:var(--border);margin:18px 0; }
-    .total-info { display:flex;justify-content:space-between;align-items:center;padding:14px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:11px;margin-bottom:18px; }
-    .total-label { font-size:13px;color:var(--text-secondary); }
-    .total-val { font-size:22px;font-weight:800;color:var(--accent-blue); }
-    .gen-meta { display:flex;flex-direction:column;gap:9px;margin-bottom:18px; }
-    .meta-field label { font-size:12px;color:var(--text-muted);margin-bottom:3px;display:block; }
-    .meta-input { width:100%;padding:9px 13px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:9px;color:var(--text-primary);font-family:'Inter',sans-serif;font-size:13px;outline:none;transition:border-color .2s; }
-    .meta-input:focus { border-color:var(--accent-blue); }
-    .btn-generate { width:100%;padding:15px;border:none;border-radius:13px;background:var(--gradient-1);color:white;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 4px 20px rgba(59,130,246,.35); }
-    .btn-generate:hover { transform:translateY(-2px);box-shadow:0 8px 28px rgba(59,130,246,.5); }
-    .btn-generate:disabled { opacity:.5;cursor:not-allowed;transform:none; }
+    .exam-paper-wrap{padding:28px;}
 
-    .exam-empty { display:flex;flex-direction:column;align-items:center;justify-content:center;height:400px;background:var(--bg-card);border:1px solid var(--border);border-radius:18px;color:var(--text-muted);gap:14px; }
-    .exam-empty-icon { font-size:60px;opacity:.3; }
-    .exam-preview { background:var(--bg-card);border:1px solid var(--border);border-radius:18px;overflow:hidden; }
-    .exam-preview-header { padding:18px 26px;background:var(--bg-secondary);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between; }
-    .exam-preview-title { font-size:14px;font-weight:600; }
-    .exam-actions { display:flex;gap:9px; }
-    .btn-action { padding:7px 16px;border-radius:9px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px; }
-    .btn-regenerate { background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);color:#a78bfa; }
-    .btn-regenerate:hover { background:rgba(139,92,246,.25); }
-    .btn-pdf { background:var(--gradient-1);border:none;color:white;box-shadow:0 2px 12px rgba(59,130,246,.3); }
-    .btn-pdf:hover { transform:translateY(-1px);box-shadow:0 4px 18px rgba(59,130,246,.5); }
-    .exam-body { padding:28px; }
+    /* ── PAPER ── */
+    .exam-paper{
+      background:white;color:#111827;
+      border-radius:10px;padding:42px;
+      font-family:'Times New Roman',serif;
+      box-shadow:0 4px 32px rgba(0,0,0,.25);
+    }
+    .paper-header{text-align:center;border-bottom:2px solid #1a1a2e;padding-bottom:20px;margin-bottom:24px;}
+    .paper-school{font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#374151;margin-bottom:4px;}
+    .paper-subject{font-size:22px;font-weight:900;color:#0a0e1a;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.5px;}
+    .paper-info{font-size:13px;color:#6b7280;display:flex;justify-content:center;gap:22px;margin-top:8px;flex-wrap:wrap;}
+    .student-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:26px;}
+    .student-field{display:flex;flex-direction:column;gap:4px;}
+    .student-field label{font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;}
+    .field-line{border-bottom:1px solid #9ca3af;height:28px;}
+    .note-box{
+      background:#fffbeb;border:1px solid #fde68a;border-radius:8px;
+      padding:12px 16px;margin-bottom:24px;font-size:13px;color:#78350f;
+    }
+    .paper-questions{display:flex;flex-direction:column;gap:26px;}
+    .paper-q{border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;}
+    .paper-q-head{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:10px 16px;background:#f8faff;border-bottom:1px solid #e5e7eb;
+    }
+    .q-num{font-size:14px;font-weight:800;color:#111827;}
+    .q-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;font-family:'Inter',sans-serif;}
+    .q-pts{font-size:13px;font-weight:700;color:#111827;}
+    .paper-q-body{padding:16px 20px;}
+    .q-text-content{font-size:15px;line-height:1.8;color:#111827;white-space:pre-wrap;margin-bottom:10px;}
+    .q-img-content{max-width:100%;max-height:300px;object-fit:contain;border-radius:6px;display:block;margin:8px auto;border:1px solid #e5e7eb;}
+    .paper-footer{margin-top:26px;padding-top:14px;border-top:1px dashed #d1d5db;text-align:center;font-size:12px;color:#9ca3af;font-family:'Inter',sans-serif;}
 
-    /* EXAM PAPER */
-    .exam-paper { background:white;color:#1a1a2e;border-radius:10px;padding:38px;font-family:'Times New Roman',serif;box-shadow:0 4px 28px rgba(0,0,0,.3); }
-    .paper-header { text-align:center;border-bottom:2px solid #1a1a2e;padding-bottom:18px;margin-bottom:22px; }
-    .paper-school { font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#333;margin-bottom:4px; }
-    .paper-subject { font-size:21px;font-weight:bold;color:#0a0e1a;margin:8px 0 3px;text-transform:uppercase; }
-    .paper-info { font-size:13px;color:#555;display:flex;justify-content:center;gap:20px;margin-top:7px;flex-wrap:wrap; }
-    .student-row { display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px; }
-    .student-field { display:flex;flex-direction:column;gap:3px; }
-    .student-field label { font-size:12px;font-weight:bold;color:#555;text-transform:uppercase;letter-spacing:.5px; }
-    .student-field .field-line { border-bottom:1px solid #999;height:26px; }
-    .paper-questions { display:flex;flex-direction:column;gap:24px; }
-    .paper-question { border:1px solid #e0e0e0;border-radius:7px;overflow:hidden; }
-    .paper-question-header { display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#f5f7ff;border-bottom:1px solid #e0e0e0; }
-    .q-number { font-size:14px;font-weight:bold;color:#1a1a2e; }
-    .q-chapter-badge { font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600;font-family:'Inter',sans-serif; }
-    .q-points { font-size:13px;font-weight:bold; }
-    .paper-question-content { padding:14px 18px; }
-    .q-content-text { font-size:15px;line-height:1.75;color:#1a1a2e;margin-bottom:10px;white-space:pre-wrap; }
-    .q-content-img { max-width:100%;max-height:280px;object-fit:contain;border-radius:5px;display:block;margin:0 auto;border:1px solid #eee; }
-    .paper-footer { margin-top:24px;padding-top:14px;border-top:1px dashed #ccc;text-align:center;font-size:12px;color:#888;font-family:'Inter',sans-serif; }
+    /* ── ADMIN MODAL (password gate) ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(10px);}
+    .modal-overlay.show{display:flex;animation:fadeIn .2s ease;}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    .modal-box{background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:32px;width:90%;max-width:420px;}
+    .modal-title{font-size:17px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:9px;}
+    .modal-sub{font-size:13px;color:var(--t3);margin-bottom:24px;}
+    .pw-input{
+      width:100%;padding:13px 16px;background:var(--bg2);border:1px solid var(--border);
+      border-radius:11px;color:var(--t1);font-family:'Inter',sans-serif;font-size:15px;
+      outline:none;transition:border-color .2s;letter-spacing:3px;text-align:center;
+    }
+    .pw-input:focus{border-color:var(--blue);}
+    .pw-error{font-size:12px;color:#f87171;margin-top:8px;min-height:18px;text-align:center;}
+    .modal-btns{display:flex;gap:10px;margin-top:18px;}
+    .btn-pw-ok{
+      flex:1;padding:13px;background:var(--g1);border:none;border-radius:11px;
+      color:white;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;
+      cursor:pointer;transition:all .2s;
+    }
+    .btn-pw-ok:hover{opacity:.88;}
+    .btn-pw-cancel{
+      padding:13px 18px;background:var(--bg2);border:1px solid var(--border);
+      border-radius:11px;color:var(--t3);font-family:'Inter',sans-serif;font-size:14px;cursor:pointer;
+    }
+
+    /* ── ADMIN PANEL ── */
+    .admin-panel{display:none;animation:fadeUp .3s ease;}
+    .admin-panel.show{display:block;}
+
+    .admin-header-bar{
+      display:flex;align-items:center;justify-content:space-between;
+      background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);
+      border-radius:12px;padding:12px 20px;margin-bottom:28px;
+    }
+    .admin-badge{
+      display:flex;align-items:center;gap:8px;
+      font-size:13px;font-weight:600;color:#fbbf24;
+    }
+    .btn-logout{
+      padding:6px 14px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);
+      border-radius:8px;color:#f87171;font-family:'Inter',sans-serif;font-size:12px;
+      font-weight:600;cursor:pointer;transition:all .2s;
+    }
+    .btn-logout:hover{background:rgba(239,68,68,.2);}
+
+    .admin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;margin-bottom:32px;}
+
+    /* Chapter cards */
+    .ch-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;position:relative;overflow:hidden;transition:all .3s;}
+    .ch-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:16px 16px 0 0;}
+    .ch-card[data-ch="2"]::before{background:linear-gradient(90deg,#3b82f6,#60a5fa);}
+    .ch-card[data-ch="3"]::before{background:linear-gradient(90deg,#8b5cf6,#a78bfa);}
+    .ch-card[data-ch="4"]::before{background:linear-gradient(90deg,#f59e0b,#fcd34d);}
+    .ch-card[data-ch="5"]::before{background:linear-gradient(90deg,#f97316,#fb923c);}
+    .ch-card[data-ch="6"]::before{background:linear-gradient(90deg,#10b981,#34d399);}
+    .ch-card[data-ch="7"]::before{background:linear-gradient(90deg,#ec4899,#f472b6);}
+    .ch-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.3);}
+
+    .ch-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+    .ch-label{display:flex;align-items:center;gap:9px;}
+    .ch-num{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;}
+    .ch-card[data-ch="2"] .ch-num{background:rgba(59,130,246,.2);color:#60a5fa;}
+    .ch-card[data-ch="3"] .ch-num{background:rgba(139,92,246,.2);color:#a78bfa;}
+    .ch-card[data-ch="4"] .ch-num{background:rgba(245,158,11,.2);color:#fbbf24;}
+    .ch-card[data-ch="5"] .ch-num{background:rgba(249,115,22,.2);color:#fb923c;}
+    .ch-card[data-ch="6"] .ch-num{background:rgba(16,185,129,.2);color:#34d399;}
+    .ch-card[data-ch="7"] .ch-num{background:rgba(236,72,153,.2);color:#f472b6;}
+    .ch-name{font-size:13px;font-weight:600;}
+    .ch-tag{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;}
+    .tag-req{background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.3);}
+    .tag-opt{background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.3);}
+
+    .ch-stats{display:flex;gap:10px;margin-bottom:14px;}
+    .ch-stat{flex:1;background:var(--bg2);border-radius:8px;padding:9px;text-align:center;}
+    .ch-stat-num{font-size:19px;font-weight:700;}
+    .ch-stat-lbl{font-size:10px;color:var(--t3);margin-top:1px;}
+
+    .q-list{display:flex;flex-direction:column;gap:7px;margin-bottom:12px;}
+    .q-item{display:flex;align-items:center;gap:8px;background:var(--bg2);border-radius:8px;padding:8px 11px;font-size:12px;}
+    .q-idx{width:19px;height:19px;border-radius:5px;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:10px;flex-shrink:0;}
+    .q-txt{flex:1;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .q-img-icon{font-size:13px;cursor:pointer;flex-shrink:0;}
+    .q-del{background:none;border:none;color:var(--t3);cursor:pointer;padding:2px 4px;border-radius:4px;font-size:13px;transition:all .2s;flex-shrink:0;}
+    .q-del:hover{color:#ef4444;background:rgba(239,68,68,.1);}
+
+    .btn-add{
+      width:100%;padding:9px;border:1px dashed var(--border2);border-radius:9px;
+      background:transparent;color:var(--t3);font-family:'Inter',sans-serif;font-size:12px;
+      cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:5px;
+    }
+    .btn-add:hover{color:var(--blue);border-color:var(--blue);background:rgba(59,130,246,.05);}
+
+    .add-form{margin-top:10px;display:none;flex-direction:column;gap:7px;}
+    .add-form.show{display:flex;}
+    .f-textarea{
+      width:100%;padding:9px 12px;background:var(--bg2);border:1px solid var(--border);
+      border-radius:8px;color:var(--t1);font-family:'Inter',sans-serif;font-size:13px;
+      outline:none;resize:vertical;min-height:56px;transition:border-color .2s;
+    }
+    .f-textarea:focus{border-color:var(--blue);}
+    .f-row{display:flex;gap:7px;}
+    .btn-fs{flex:1;padding:8px;background:var(--g1);border:none;border-radius:7px;color:white;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;}
+    .btn-fc{padding:8px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;color:var(--t3);font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;}
+
+    /* Admin generate section */
+    .admin-gen-section{
+      background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;
+    }
+    .admin-gen-title{font-size:16px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px;}
+    .gen-fields{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+    @media(max-width:600px){.gen-fields{grid-template-columns:1fr;}}
+    .f-label{font-size:12px;color:var(--t3);margin-bottom:5px;display:block;font-weight:500;}
+    .f-input{
+      width:100%;padding:10px 13px;background:var(--bg2);border:1px solid var(--border);
+      border-radius:9px;color:var(--t1);font-family:'Inter',sans-serif;font-size:13px;
+      outline:none;transition:border-color .2s;
+    }
+    .f-input:focus{border-color:var(--blue);}
+    .btn-admin-gen{
+      width:100%;padding:15px;border:none;border-radius:13px;background:var(--g1);
+      color:white;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;
+      cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;gap:9px;
+      box-shadow:0 4px 20px rgba(59,130,246,.35);
+    }
+    .btn-admin-gen:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(59,130,246,.5);}
+
+    /* Img modal */
+    .img-modal-box{background:var(--card);border:1px solid var(--border2);border-radius:18px;padding:22px;max-width:580px;width:92%;}
+    .img-modal-title{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
+    .btn-mclose{background:none;border:none;color:var(--t3);font-size:19px;cursor:pointer;padding:3px 7px;border-radius:5px;}
+    .btn-mclose:hover{color:var(--t1);background:var(--border);}
+    #previewImg{width:100%;border-radius:8px;}
 
     /* TOAST */
-    .toast-container { position:fixed;bottom:28px;right:28px;z-index:9999;display:flex;flex-direction:column;gap:9px; }
-    .toast { padding:12px 18px;border-radius:11px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:9px;animation:slideInRight .3s ease;max-width:340px; }
-    @keyframes slideInRight { from{opacity:0;transform:translateX(50px)} to{opacity:1;transform:none} }
-    .toast.success { background:rgba(16,185,129,.93);color:white;box-shadow:0 4px 14px rgba(16,185,129,.3); }
-    .toast.error { background:rgba(239,68,68,.93);color:white;box-shadow:0 4px 14px rgba(239,68,68,.3); }
-    .toast.info { background:rgba(59,130,246,.93);color:white;box-shadow:0 4px 14px rgba(59,130,246,.3); }
+    .toast-wrap{position:fixed;bottom:26px;right:26px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+    .toast{padding:12px 18px;border-radius:11px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;animation:slideR .3s ease;max-width:320px;}
+    @keyframes slideR{from{opacity:0;transform:translateX(48px)}to{opacity:1;transform:none}}
+    .t-ok{background:rgba(16,185,129,.92);color:white;box-shadow:0 4px 14px rgba(16,185,129,.3);}
+    .t-err{background:rgba(239,68,68,.92);color:white;box-shadow:0 4px 14px rgba(239,68,68,.3);}
+    .t-inf{background:rgba(59,130,246,.92);color:white;box-shadow:0 4px 14px rgba(59,130,246,.3);}
 
-    /* MODALS */
-    .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px); }
-    .modal-overlay.show { display:flex;animation:fadeIn .2s ease; }
-    .modal-box { background:var(--bg-card);border:1px solid var(--border);border-radius:18px;padding:22px;max-width:680px;width:95%;max-height:90vh;overflow-y:auto; }
-    .modal-title { font-size:15px;font-weight:700;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center; }
-    .modal-close { background:none;border:none;color:var(--text-muted);font-size:19px;cursor:pointer;padding:3px 8px;border-radius:5px;transition:all .2s; }
-    .modal-close:hover { color:var(--text-primary);background:var(--border); }
-    .modal-img { width:100%;border-radius:9px;margin-top:6px; }
-
-    /* ===== OCR MODAL ===== */
-    .ocr-modal-body { display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px; }
-    @media(max-width:600px){ .ocr-modal-body { grid-template-columns:1fr; } }
-    .ocr-img-panel { display:flex;flex-direction:column;gap:8px; }
-    .ocr-img-preview { width:100%;border-radius:8px;border:1px solid var(--border);max-height:360px;object-fit:contain;background:#0a0e1a; }
-    .ocr-text-panel { display:flex;flex-direction:column;gap:8px; }
-    .ocr-text-label { font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px; }
-    .ocr-textarea { width:100%;min-height:320px;padding:12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:9px;color:var(--text-primary);font-family:'Inter',sans-serif;font-size:13px;line-height:1.6;outline:none;resize:vertical; }
-    .ocr-textarea:focus { border-color:var(--accent-blue); }
-    .ocr-progress-bar { height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin:4px 0; }
-    .ocr-progress-fill { height:100%;background:var(--gradient-1);border-radius:2px;transition:width .3s ease;width:0%; }
-    .ocr-status-text { font-size:12px;color:var(--text-muted); }
-    .ocr-options { display:flex;flex-direction:column;gap:8px;padding:12px;background:var(--bg-secondary);border-radius:10px;border:1px solid var(--border);margin-bottom:12px; }
-    .ocr-option-title { font-size:12px;color:var(--text-secondary);font-weight:600;margin-bottom:4px; }
-    .ocr-checkbox-row { display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary);cursor:pointer; }
-    .ocr-checkbox-row input { accent-color:var(--accent-blue);width:14px;height:14px;cursor:pointer; }
-    .ocr-actions { display:flex;gap:8px;flex-wrap:wrap; }
-    .btn-ocr-scan { flex:1;padding:11px;background:linear-gradient(135deg,#06b6d4,#3b82f6);border:none;border-radius:9px;color:white;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:7px; }
-    .btn-ocr-scan:hover { opacity:.88; }
-    .btn-ocr-scan:disabled { opacity:.5;cursor:not-allowed; }
-    .btn-ocr-save { flex:1;padding:11px;background:var(--gradient-1);border:none;border-radius:9px;color:white;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:7px; }
-    .btn-ocr-save:hover { opacity:.88; }
-    .btn-ocr-save:disabled { opacity:.5;cursor:not-allowed; }
-    .btn-ocr-cancel { padding:11px 16px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:9px;color:var(--text-muted);font-family:'Inter',sans-serif;font-size:13px;cursor:pointer; }
-
-    /* Lang tag pill */
-    .lang-pills { display:flex;gap:6px;flex-wrap:wrap; }
-    .lang-pill { padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);color:var(--text-muted);transition:all .2s; }
-    .lang-pill.active { background:rgba(59,130,246,.2);border-color:var(--accent-blue);color:var(--accent-blue); }
+    /* FOOTER */
+    footer{
+      position:relative;z-index:1;text-align:center;
+      padding:22px 0 30px;
+      border-top:1px solid var(--border);
+      margin-top:auto;
+    }
+    .footer-credit{font-size:13px;color:var(--t3);}
+    .footer-credit strong{color:var(--t2);}
+    .footer-id{
+      display:inline-block;margin-left:8px;
+      font-size:11px;padding:2px 9px;border-radius:20px;
+      background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.25);
+      color:#93c5fd;font-weight:600;font-family:'Inter',sans-serif;
+    }
 
     /* Spinner */
-    .spinner { width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0; }
-    @keyframes spin { to{transform:rotate(360deg)} }
+    .spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;}
+    @keyframes spin{to{transform:rotate(360deg)}}
 
-    /* Responsive */
-    @media(max-width:1100px){ .generate-layout { grid-template-columns:1fr; } .gen-panel { position:static; } }
-    @media(max-width:768px){ .header{padding:14px 18px;} .container{padding:22px 18px 60px;} .chapter-grid{grid-template-columns:1fr;} .header-stats{display:none;} }
-    ::-webkit-scrollbar { width:5px; }
-    ::-webkit-scrollbar-track { background:var(--bg-secondary); }
-    ::-webkit-scrollbar-thumb { background:var(--border-hover);border-radius:3px; }
+    @media(max-width:768px){
+      header{padding:14px 20px;}
+      .main{padding:30px 18px 80px;}
+      .student-hero h2{font-size:26px;}
+      .exam-paper{padding:24px 18px;}
+      .student-row{grid-template-columns:1fr;}
+    }
+    ::-webkit-scrollbar{width:5px;}
+    ::-webkit-scrollbar-track{background:var(--bg2);}
+    ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
   </style>
 </head>
 <body>
 
 <!-- HEADER -->
-<header class="header">
+<header>
   <div class="logo">
-    <div class="logo-icon">📝</div>
+    <div class="logo-icon">📋</div>
     <div class="logo-text">
       <h1>ExamGen Pro</h1>
-      <p>Hệ thống tạo đề thi ngẫu nhiên</p>
+      <p>Hệ thống đề thi ngẫu nhiên</p>
     </div>
   </div>
-  <div class="header-stats">
-    <div class="stat-badge"><div class="dot"></div><span id="totalQuestionsDisplay">0 câu hỏi</span></div>
-    <div class="stat-badge"><span>📚</span><span>6 chương</span></div>
+  <div class="header-right">
+    <div class="total-badge">
+      <div class="live-dot"></div>
+      <span id="totalBadge">Ngân hàng: 0 câu</span>
+    </div>
+    <span class="admin-link" id="adminLink" onclick="openAdminGate()">⚙</span>
   </div>
 </header>
 
-<div class="container">
-  <div class="tabs">
-    <button class="tab-btn active" id="tab-bank" onclick="switchTab('bank')">📚 Ngân hàng câu hỏi</button>
-    <button class="tab-btn" id="tab-gen" onclick="switchTab('gen')">🎲 Tạo đề thi</button>
-  </div>
+<!-- MAIN -->
+<div class="main">
 
-  <!-- BANK TAB -->
-  <div class="tab-content active" id="content-bank">
-    <div class="section-title">📚 Ngân hàng câu hỏi</div>
-    <div class="section-sub">Thêm câu hỏi thủ công hoặc <strong style="color:var(--accent-cyan)">📷 Quét ảnh OCR</strong> từ sách/đề in sẵn — hệ thống tự nhận chữ + giữ nguyên ảnh gốc.</div>
-    <div class="highlight-group">⚡ Chương 4 &amp; 5: chọn ngẫu nhiên 1 trong 2 khi tạo đề</div>
-    <div class="chapter-grid" id="chapterGrid"></div>
-  </div>
+  <!-- ══════════ STUDENT VIEW ══════════ -->
+  <div id="studentView">
+    <div class="student-hero">
+      <h2>Tạo đề thi ngẫu nhiên</h2>
+      <p>Mỗi lần nhấn, hệ thống tự chọn 1 câu từ mỗi chương — đề khác nhau mỗi lần!</p>
+    </div>
 
-  <!-- GENERATE TAB -->
-  <div class="tab-content" id="content-gen">
-    <div class="section-title">🎲 Tạo đề thi ngẫu nhiên</div>
-    <div class="section-sub">Tự động chọn 1 câu từ mỗi chương theo cấu trúc định sẵn.</div>
-    <div class="generate-layout">
-      <div class="gen-panel">
-        <div class="gen-panel-title">📋 Cấu trúc đề thi</div>
-        <div class="structure-list">
-          <div class="structure-item"><div class="struct-ch" style="background:rgba(59,130,246,.2);color:#60a5fa;">2</div><div class="struct-info"><div class="struct-name">Chương 2</div><div class="struct-detail">Bắt buộc • 1 câu</div></div><div class="struct-pts">2đ</div></div>
-          <div class="structure-item"><div class="struct-ch" style="background:rgba(139,92,246,.2);color:#a78bfa;">3</div><div class="struct-info"><div class="struct-name">Chương 3</div><div class="struct-detail">Bắt buộc • 1 câu</div></div><div class="struct-pts">2đ</div></div>
-          <div class="structure-item" style="border-color:rgba(245,158,11,.3)"><div class="struct-ch" style="background:rgba(245,158,11,.2);color:#fbbf24;">4/5</div><div class="struct-info"><div class="struct-name">Chương 4 hoặc 5</div><div class="struct-detail">Ngẫu nhiên 1 trong 2 • 1 câu</div></div><div class="struct-pts">2đ</div></div>
-          <div class="structure-item"><div class="struct-ch" style="background:rgba(16,185,129,.2);color:#34d399;">6</div><div class="struct-info"><div class="struct-name">Chương 6</div><div class="struct-detail">Bắt buộc • 1 câu</div></div><div class="struct-pts">2đ</div></div>
-          <div class="structure-item"><div class="struct-ch" style="background:rgba(236,72,153,.2);color:#f472b6;">7</div><div class="struct-info"><div class="struct-name">Chương 7</div><div class="struct-detail">Bắt buộc • 1 câu</div></div><div class="struct-pts">2đ</div></div>
-        </div>
-        <div class="divider"></div>
-        <div class="total-info">
-          <div><div class="total-label">Tổng điểm</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px;">5 câu × 2 điểm/câu</div></div>
-          <div class="total-val">10 điểm</div>
-        </div>
-        <div class="gen-meta">
-          <div class="meta-field"><label>Tên môn học</label><input type="text" class="meta-input" id="metaSubject" placeholder="VD: Kỹ thuật lập trình" /></div>
-          <div class="meta-field"><label>Tên trường / Khoa</label><input type="text" class="meta-input" id="metaSchool" placeholder="VD: Đại học Bách Khoa" /></div>
-          <div class="meta-field"><label>Thời gian làm bài</label><input type="text" class="meta-input" id="metaTime" value="90 phút" /></div>
-          <div class="meta-field"><label>Mã đề thi (tự động nếu để trống)</label><input type="text" class="meta-input" id="metaCode" placeholder="VD: 001" /></div>
-          <div class="meta-field"><label>Năm học</label><input type="text" class="meta-input" id="metaYear" value="2025-2026" /></div>
-        </div>
-        <button class="btn-generate" id="btnGenerate" onclick="generateExam()">🎲 Tạo đề thi ngẫu nhiên</button>
-      </div>
-      <div>
-        <div class="exam-empty" id="examEmpty">
-          <div class="exam-empty-icon">📄</div>
-          <div style="font-size:15px;font-weight:500;">Chưa có đề thi nào</div>
-          <div style="font-size:13px;">Nhấn "Tạo đề thi ngẫu nhiên" để bắt đầu</div>
-        </div>
-        <div class="exam-preview" id="examPreview" style="display:none;">
-          <div class="exam-preview-header">
-            <div class="exam-preview-title">👁️ Xem trước đề thi</div>
-            <div class="exam-actions">
-              <button class="btn-action btn-regenerate" onclick="generateExam()">🔄 Tạo lại</button>
-              <button class="btn-action btn-pdf" id="btnPdf" onclick="exportPDF()">📄 Xuất PDF</button>
+    <div class="exam-structure">
+      <div class="struct-chip"><div class="dot" style="background:#60a5fa"></div>Chương 2</div>
+      <div class="struct-chip"><div class="dot" style="background:#a78bfa"></div>Chương 3</div>
+      <div class="struct-chip"><div class="dot" style="background:#fbbf24"></div>Chương 4</div>
+      <div class="struct-chip"><div class="dot" style="background:#fb923c"></div>Chương 5</div>
+      <div class="struct-chip"><div class="dot" style="background:#34d399"></div>Chương 6</div>
+      <div class="struct-chip"><div class="dot" style="background:#f472b6"></div>Chương 7</div>
+      <div class="struct-chip" style="border-color:rgba(16,185,129,.35);color:#34d399;font-weight:700;">= 5 câu · 10 điểm</div>
+    </div>
+
+    <button class="btn-big-generate" id="btnGenerate" onclick="generateExam()">
+      <span class="btn-icon">🎲</span>
+      <span>Tạo đề thi ngẫu nhiên</span>
+    </button>
+
+    <!-- RESULT -->
+    <div class="exam-result" id="examResult">
+      <div class="exam-card">
+        <div class="exam-card-header">
+          <div>
+            <div class="exam-card-title">📄 Đề thi</div>
+            <div class="exam-meta-chips" style="margin-top:5px;">
+              <span class="meta-chip" id="metaCodeChip">Mã đề —</span>
+              <span class="meta-chip" id="metaTimeChip">—</span>
+              <span class="meta-chip" id="metaQChip">5 câu · 10đ</span>
             </div>
           </div>
-          <div class="exam-body"><div class="exam-paper" id="examPaper"></div></div>
+          <div class="exam-card-actions">
+            <button class="btn-sm btn-regen" onclick="generateExam()">🔄 Đề khác</button>
+            <button class="btn-sm btn-pdf" id="btnPdf" onclick="exportPDF()">📄 Xuất PDF</button>
+          </div>
+        </div>
+        <div class="exam-paper-wrap">
+          <div class="exam-paper" id="examPaper"></div>
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- ══════════ ADMIN PANEL ══════════ -->
+  <div class="admin-panel" id="adminPanel">
+    <div class="admin-header-bar">
+      <div class="admin-badge">🔐 Chế độ quản trị</div>
+      <button class="btn-logout" onclick="logout()">Đăng xuất</button>
+    </div>
+
+    <!-- Chapter cards -->
+    <div class="admin-grid" id="adminGrid"></div>
+
+    <!-- Generate section -->
+    <div class="admin-gen-section">
+      <div class="admin-gen-title">⚙️ Cài đặt đề thi</div>
+      <div class="gen-fields">
+        <div><label class="f-label">Tên môn học</label><input class="f-input" id="cfSubject" placeholder="VD: Kỹ thuật lập trình" /></div>
+        <div><label class="f-label">Tên trường / Khoa</label><input class="f-input" id="cfSchool" placeholder="VD: Đại học Bách Khoa" /></div>
+        <div><label class="f-label">Thời gian làm bài</label><input class="f-input" id="cfTime" value="90 phút" /></div>
+        <div><label class="f-label">Năm học</label><input class="f-input" id="cfYear" value="2025-2026" /></div>
+        <div><label class="f-label">Mã đề (tự động nếu để trống)</label><input class="f-input" id="cfCode" placeholder="VD: 001" /></div>
+      </div>
+      <button class="btn-admin-gen" onclick="generateExam()">🎲 Tạo đề & xem trước</button>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-credit">
+    <strong>MSSV: 25251134</strong> · <span class="footer-id">Nhóm 12</span>
+  </div>
+</footer>
+
+<!-- PASSWORD MODAL -->
+<div class="modal-overlay" id="pwModal">
+  <div class="modal-box">
+    <div class="modal-title">🔐 Xác thực quản trị</div>
+    <div class="modal-sub">Nhập mật khẩu để vào chế độ tạo đề thi</div>
+    <input type="password" class="pw-input" id="pwInput" placeholder="••••••••"
+      onkeydown="if(event.key==='Enter') checkPassword()" autocomplete="off" />
+    <div class="pw-error" id="pwError"></div>
+    <div class="modal-btns">
+      <button class="btn-pw-ok" onclick="checkPassword()">Xác nhận</button>
+      <button class="btn-pw-cancel" onclick="closeModal('pwModal')">Huỷ</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMAGE PREVIEW MODAL -->
+<div class="modal-overlay" id="imgModal">
+  <div class="img-modal-box">
+    <div class="img-modal-title">
+      <span>🖼️ Hình ảnh câu hỏi</span>
+      <button class="btn-mclose" onclick="closeModal('imgModal')">✕</button>
+    </div>
+    <img id="previewImg" src="" alt="preview" />
   </div>
 </div>
 
 <!-- TOAST -->
-<div class="toast-container" id="toastContainer"></div>
-
-<!-- IMAGE PREVIEW MODAL -->
-<div class="modal-overlay" id="imgModal">
-  <div class="modal-box">
-    <div class="modal-title"><span>🖼️ Xem hình ảnh</span><button class="modal-close" onclick="closeModal('imgModal')">✕</button></div>
-    <img id="modalImg" class="modal-img" src="" alt="Question image" />
-  </div>
-</div>
-
-<!-- OCR MODAL -->
-<div class="modal-overlay" id="ocrModal">
-  <div class="modal-box" style="max-width:780px;">
-    <div class="modal-title">
-      <span>📷 Quét ảnh — OCR tự động nhận chữ</span>
-      <button class="modal-close" onclick="closeModal('ocrModal')">✕</button>
-    </div>
-
-    <!-- Options -->
-    <div class="ocr-options">
-      <div class="ocr-option-title">🌐 Ngôn ngữ nhận dạng:</div>
-      <div class="lang-pills">
-        <div class="lang-pill active" id="lang-vie" onclick="setLang('vie')">🇻🇳 Tiếng Việt</div>
-        <div class="lang-pill" id="lang-eng" onclick="setLang('eng')">🇺🇸 English</div>
-        <div class="lang-pill" id="lang-vie+eng" onclick="setLang('vie+eng')">🇻🇳+🇺🇸 Cả hai</div>
-      </div>
-      <div style="margin-top:8px;">
-        <div class="ocr-option-title">⚙️ Lưu câu hỏi:</div>
-        <label class="ocr-checkbox-row"><input type="checkbox" id="keepImage" checked /> Giữ ảnh gốc kèm theo câu hỏi</label>
-        <label class="ocr-checkbox-row" style="margin-top:4px;"><input type="checkbox" id="cleanText" checked /> Tự động dọn dẹp văn bản (xóa khoảng trắng thừa)</label>
-      </div>
-    </div>
-
-    <div class="ocr-modal-body">
-      <!-- Image side -->
-      <div class="ocr-img-panel">
-        <div class="ocr-text-label">📷 Ảnh đã chọn</div>
-        <img id="ocrImgPreview" class="ocr-img-preview" src="" alt="OCR preview" />
-        <div style="font-size:11px;color:var(--text-muted);" id="ocrImgInfo"></div>
-      </div>
-      <!-- Text side -->
-      <div class="ocr-text-panel">
-        <div class="ocr-text-label">📝 Văn bản được nhận dạng <span style="color:var(--text-muted);font-weight:400;">(chỉnh sửa nếu cần)</span></div>
-        <div class="ocr-progress-bar" id="ocrProgressBar" style="display:none;"><div class="ocr-progress-fill" id="ocrProgressFill"></div></div>
-        <div class="ocr-status-text" id="ocrStatusText"></div>
-        <textarea class="ocr-textarea" id="ocrResultText" placeholder="Văn bản sẽ hiện ở đây sau khi quét..."></textarea>
-      </div>
-    </div>
-
-    <div class="ocr-actions">
-      <button class="btn-ocr-scan" id="btnOcrScan" onclick="runOCR()">🔍 Bắt đầu quét OCR</button>
-      <button class="btn-ocr-save" id="btnOcrSave" onclick="saveOCRQuestion()" disabled>✅ Lưu vào chương <span id="ocrSaveChLabel"></span></button>
-      <button class="btn-ocr-cancel" onclick="closeModal('ocrModal')">Huỷ</button>
-    </div>
-  </div>
-</div>
+<div class="toast-wrap" id="toastWrap"></div>
 
 <script>
-// =====================================================
-// DATA
-// =====================================================
+// ═══════════════════════════════════════
+// CONFIG & DATA
+// ═══════════════════════════════════════
+var ADMIN_PW = 'khang25251134'; // mật khẩu quản trị
+
 var CHAPTERS = [
-  { id:2, name:'Chương 2', color:'#3b82f6', group:'required' },
-  { id:3, name:'Chương 3', color:'#8b5cf6', group:'required' },
-  { id:4, name:'Chương 4', color:'#f59e0b', group:'optional' },
-  { id:5, name:'Chương 5', color:'#f97316', group:'optional' },
-  { id:6, name:'Chương 6', color:'#10b981', group:'required' },
-  { id:7, name:'Chương 7', color:'#ec4899', group:'required' },
+  {id:2,name:'Chương 2',color:'#3b82f6',group:'req'},
+  {id:3,name:'Chương 3',color:'#8b5cf6',group:'req'},
+  {id:4,name:'Chương 4',color:'#f59e0b',group:'opt'},
+  {id:5,name:'Chương 5',color:'#f97316',group:'opt'},
+  {id:6,name:'Chương 6',color:'#10b981',group:'req'},
+  {id:7,name:'Chương 7',color:'#ec4899',group:'req'},
 ];
 
-var questionBank = JSON.parse(localStorage.getItem('examgen_bank') || '{}');
-CHAPTERS.forEach(function(ch){ if(!questionBank[ch.id]) questionBank[ch.id]=[]; });
+var bank = JSON.parse(localStorage.getItem('examgen2_bank') || '{}');
+CHAPTERS.forEach(function(c){ if(!bank[c.id]) bank[c.id]=[]; });
 
-function saveBank(){ localStorage.setItem('examgen_bank', JSON.stringify(questionBank)); updateStats(); }
+var adminOpen = false;
+var currentExam = null;
+
+// saved config
+var cfg = JSON.parse(localStorage.getItem('examgen2_cfg') || '{}');
+
+function saveCfg(){
+  cfg.subject = (document.getElementById('cfSubject')||{}).value || cfg.subject || '';
+  cfg.school  = (document.getElementById('cfSchool')||{}).value  || cfg.school  || '';
+  cfg.time    = (document.getElementById('cfTime')||{}).value    || cfg.time    || '90 phút';
+  cfg.year    = (document.getElementById('cfYear')||{}).value    || cfg.year    || '2025-2026';
+  cfg.code    = (document.getElementById('cfCode')||{}).value    || '';
+  localStorage.setItem('examgen2_cfg', JSON.stringify(cfg));
+}
+
+function loadCfg(){
+  if(cfg.subject) document.getElementById('cfSubject').value = cfg.subject;
+  if(cfg.school)  document.getElementById('cfSchool').value  = cfg.school;
+  if(cfg.time)    document.getElementById('cfTime').value    = cfg.time;
+  if(cfg.year)    document.getElementById('cfYear').value    = cfg.year;
+}
+
+function saveBank(){ localStorage.setItem('examgen2_bank', JSON.stringify(bank)); updateBadge(); }
+
+function updateBadge(){
+  var t=Object.values(bank).reduce(function(s,a){return s+a.length;},0);
+  document.getElementById('totalBadge').textContent='Ngân hàng: '+t+' câu';
+}
+
 function pickRandom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
-function padZero(n){ return n.toString().padStart(3,'0'); }
-function escapeHtml(s){ if(!s)return''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function padZ(n){ return n.toString().padStart(3,'0'); }
+function esc(s){ if(!s)return''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-function showToast(msg, type){
-  type = type||'success';
-  var c=document.getElementById('toastContainer');
+// ═══════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════
+function toast(msg, type){
+  type = type||'ok';
+  var cls = type==='ok'?'t-ok': type==='err'?'t-err':'t-inf';
+  var icon= type==='ok'?'✅': type==='err'?'❌':'ℹ️';
+  var w=document.getElementById('toastWrap');
   var t=document.createElement('div');
-  t.className='toast '+type;
-  var icon = type==='success'?'✅':type==='error'?'❌':'ℹ️';
-  t.innerHTML='<span>'+icon+'</span> '+msg;
-  c.appendChild(t);
-  setTimeout(function(){ t.style.opacity='0'; t.style.transform='translateX(50px)'; t.style.transition='all .3s'; setTimeout(function(){ t.remove(); },300); },3500);
+  t.className='toast '+cls;
+  t.innerHTML='<span>'+icon+'</span>'+msg;
+  w.appendChild(t);
+  setTimeout(function(){
+    t.style.opacity='0'; t.style.transform='translateX(48px)'; t.style.transition='all .3s';
+    setTimeout(function(){ t.remove(); },320);
+  },3200);
 }
 
-function switchTab(tab){
-  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
-  document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
-  document.getElementById('tab-'+tab).classList.add('active');
-  document.getElementById('content-'+tab).classList.add('active');
-}
-
-function updateStats(){
-  var total=Object.values(questionBank).reduce(function(s,a){ return s+a.length; },0);
-  document.getElementById('totalQuestionsDisplay').textContent=total+' câu hỏi';
-}
-
-// =====================================================
-// RENDER CHAPTERS
-// =====================================================
-function renderChapterGrid(){
-  var grid=document.getElementById('chapterGrid');
-  grid.innerHTML='';
-  CHAPTERS.forEach(function(ch){
-    var qs=questionBank[ch.id]||[];
-    var tagClass=ch.group==='required'?'tag-required':'tag-optional';
-    var tagText=ch.group==='required'?'Bắt buộc':'Nhóm 4/5';
-    var imgCount=qs.filter(function(q){ return q.image; }).length;
-
-    var card=document.createElement('div');
-    card.className='chapter-card';
-    card.setAttribute('data-ch',ch.id);
-    card.id='card-ch-'+ch.id;
-    card.innerHTML=
-      '<div class="chapter-head">'+
-        '<div class="chapter-label">'+
-          '<div class="chapter-num">'+ch.id+'</div>'+
-          '<div class="chapter-name">'+ch.name+'</div>'+
-        '</div>'+
-        '<span class="chapter-group-tag '+tagClass+'">'+tagText+'</span>'+
-      '</div>'+
-      '<div class="chapter-stats">'+
-        '<div class="ch-stat"><div class="ch-stat-num" id="count-'+ch.id+'">'+qs.length+'</div><div class="ch-stat-label">Câu hỏi</div></div>'+
-        '<div class="ch-stat"><div class="ch-stat-num" id="imgcount-'+ch.id+'">'+imgCount+'</div><div class="ch-stat-label">Có ảnh</div></div>'+
-      '</div>'+
-      '<div class="question-list" id="qlist-'+ch.id+'"></div>'+
-      '<div class="card-btn-row">'+
-        '<button class="add-question-btn" onclick="toggleAddForm('+ch.id+')">＋ Thêm câu hỏi</button>'+
-        '<button class="ocr-scan-btn" title="Chụp/upload ảnh đề, hệ thống tự nhận chữ">'+
-          '📷 Quét ảnh OCR'+
-          '<input type="file" accept="image/*" onchange="openOCRModal(event,'+ch.id+')" />'+
-        '</button>'+
-      '</div>'+
-      '<div class="add-form" id="addform-'+ch.id+'">'+
-        '<textarea class="form-input" id="qtext-'+ch.id+'" placeholder="Nhập nội dung câu hỏi..." rows="3"></textarea>'+
-        '<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);">'+
-          '<span>🖼️ Ảnh (tuỳ chọn):</span>'+
-          '<label style="cursor:pointer;color:var(--accent-blue);font-weight:500;">Chọn file'+
-            '<input type="file" accept="image/*" id="qimg-'+ch.id+'" style="display:none;" onchange="previewImageLabel('+ch.id+')" />'+
-          '</label>'+
-          '<span id="imgname-'+ch.id+'" style="color:var(--accent-green);font-size:11px;"></span>'+
-        '</div>'+
-        '<div class="form-row">'+
-          '<button class="btn-save" onclick="saveQuestion('+ch.id+')">✅ Lưu câu hỏi</button>'+
-          '<button class="btn-cancel" onclick="toggleAddForm('+ch.id+')">Huỷ</button>'+
-        '</div>'+
-      '</div>';
-    grid.appendChild(card);
-    renderQuestionList(ch.id);
-  });
-  updateStats();
-}
-
-function renderQuestionList(chId){
-  var list=document.getElementById('qlist-'+chId);
-  if(!list) return;
-  var qs=questionBank[chId]||[];
-  list.innerHTML='';
-  qs.forEach(function(q,i){
-    var item=document.createElement('div');
-    item.className='question-item';
-    var preview=q.text?q.text.substring(0,58)+(q.text.length>58?'…':''):'(Câu hỏi hình ảnh)';
-    item.innerHTML=
-      '<div class="q-index">'+(i+1)+'</div>'+
-      '<div class="q-text">'+escapeHtml(preview)+'</div>'+
-      (q.image?'<span class="q-img-badge" title="Xem ảnh">🖼️</span>':'')+
-      '<button class="q-del" onclick="deleteQuestion('+chId+','+i+')" title="Xoá">🗑</button>';
-    if(q.image){
-      item.querySelector('.q-img-badge').addEventListener('click', function(){ openImagePreview(q.image); });
-    }
-    list.appendChild(item);
-  });
-  var ce=document.getElementById('count-'+chId); if(ce) ce.textContent=qs.length;
-  var ie=document.getElementById('imgcount-'+chId); if(ie) ie.textContent=qs.filter(function(q){ return q.image; }).length;
-}
-
-function toggleAddForm(chId){
-  var form=document.getElementById('addform-'+chId);
-  form.classList.toggle('show');
-  if(form.classList.contains('show')) document.getElementById('qtext-'+chId).focus();
-}
-
-function previewImageLabel(chId){
-  var input=document.getElementById('qimg-'+chId);
-  var nameEl=document.getElementById('imgname-'+chId);
-  if(input.files[0]) nameEl.textContent=input.files[0].name;
-}
-
-function saveQuestion(chId){
-  var textEl=document.getElementById('qtext-'+chId);
-  var imgEl=document.getElementById('qimg-'+chId);
-  var text=textEl.value.trim();
-  if(!text && (!imgEl.files||!imgEl.files[0])){ showToast('Vui lòng nhập câu hỏi hoặc chọn ảnh!','error'); return; }
-  var q={ text:text, image:null, id:Date.now() };
-  if(imgEl.files && imgEl.files[0]){
-    var reader=new FileReader();
-    reader.onload=function(e){
-      q.image=e.target.result;
-      questionBank[chId].push(q); saveBank(); renderQuestionList(chId); resetAddForm(chId);
-      showToast('Đã thêm câu hỏi vào '+CHAPTERS.find(function(c){ return c.id===chId; }).name+'!');
-    };
-    reader.readAsDataURL(imgEl.files[0]);
-  } else {
-    questionBank[chId].push(q); saveBank(); renderQuestionList(chId); resetAddForm(chId);
-    showToast('Đã thêm câu hỏi vào '+CHAPTERS.find(function(c){ return c.id===chId; }).name+'!');
-  }
-}
-
-function resetAddForm(chId){
-  document.getElementById('qtext-'+chId).value='';
-  var imgEl=document.getElementById('qimg-'+chId); imgEl.value='';
-  document.getElementById('imgname-'+chId).textContent='';
-  document.getElementById('addform-'+chId).classList.remove('show');
-}
-
-function deleteQuestion(chId,index){
-  if(!confirm('Bạn có chắc muốn xoá câu hỏi này?')) return;
-  questionBank[chId].splice(index,1); saveBank(); renderQuestionList(chId);
-  showToast('Đã xoá câu hỏi!','info');
-}
-
-function openImagePreview(src){
-  document.getElementById('modalImg').src=src;
-  document.getElementById('imgModal').classList.add('show');
-}
-
+// ═══════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════
 function closeModal(id){
   document.getElementById(id).classList.remove('show');
 }
+document.querySelectorAll('.modal-overlay').forEach(function(m){
+  m.addEventListener('click', function(e){ if(e.target===this) this.classList.remove('show'); });
+});
 
-document.getElementById('imgModal').addEventListener('click',function(e){ if(e.target===this) closeModal('imgModal'); });
-document.getElementById('ocrModal').addEventListener('click',function(e){ if(e.target===this) closeModal('ocrModal'); });
-
-// =====================================================
-// OCR
-// =====================================================
-var ocrChapterId = null;
-var ocrImageDataUrl = null;
-var ocrLang = 'vie';
-
-function setLang(lang){
-  ocrLang=lang;
-  document.querySelectorAll('.lang-pill').forEach(function(p){ p.classList.remove('active'); });
-  document.getElementById('lang-'+lang).classList.add('active');
+// ═══════════════════════════════════════
+// ADMIN AUTH
+// ═══════════════════════════════════════
+function openAdminGate(){
+  if(adminOpen){ showAdmin(); return; }
+  document.getElementById('pwInput').value='';
+  document.getElementById('pwError').textContent='';
+  document.getElementById('pwModal').classList.add('show');
+  setTimeout(function(){ document.getElementById('pwInput').focus(); },150);
 }
 
-function openOCRModal(event, chId){
-  var file=event.target.files[0];
-  if(!file) return;
-  // reset file input so same file can be re-selected
-  event.target.value='';
-
-  ocrChapterId=chId;
-  var ch=CHAPTERS.find(function(c){ return c.id===chId; });
-  document.getElementById('ocrSaveChLabel').textContent=ch.name;
-
-  // Show modal
-  document.getElementById('ocrModal').classList.add('show');
-
-  // Reset state
-  document.getElementById('ocrResultText').value='';
-  document.getElementById('ocrStatusText').textContent='';
-  document.getElementById('ocrProgressBar').style.display='none';
-  document.getElementById('ocrProgressFill').style.width='0%';
-  document.getElementById('btnOcrSave').disabled=true;
-  document.getElementById('btnOcrScan').disabled=false;
-  document.getElementById('ocrImgInfo').textContent=file.name+' ('+Math.round(file.size/1024)+' KB)';
-
-  // Read image
-  var reader=new FileReader();
-  reader.onload=function(e){
-    ocrImageDataUrl=e.target.result;
-    document.getElementById('ocrImgPreview').src=ocrImageDataUrl;
-  };
-  reader.readAsDataURL(file);
+function checkPassword(){
+  var pw = document.getElementById('pwInput').value;
+  if(pw === ADMIN_PW){
+    closeModal('pwModal');
+    adminOpen=true;
+    showAdmin();
+  } else {
+    document.getElementById('pwError').textContent='Mật khẩu không đúng!';
+    document.getElementById('pwInput').value='';
+    document.getElementById('pwInput').focus();
+    setTimeout(function(){ document.getElementById('pwError').textContent=''; },2500);
+  }
 }
 
-async function runOCR(){
-  if(!ocrImageDataUrl){ showToast('Chưa có ảnh để quét!','error'); return; }
+function showAdmin(){
+  document.getElementById('studentView').style.display='none';
+  document.getElementById('adminPanel').classList.add('show');
+  renderAdminGrid();
+  loadCfg();
+}
 
-  var btn=document.getElementById('btnOcrScan');
-  btn.innerHTML='<div class="spinner"></div> Đang quét...';
-  btn.disabled=true;
-  document.getElementById('btnOcrSave').disabled=true;
+function logout(){
+  adminOpen=false;
+  document.getElementById('adminPanel').classList.remove('show');
+  document.getElementById('studentView').style.display='block';
+  toast('Đã đăng xuất khỏi chế độ quản trị.','inf');
+}
 
-  var progressBar=document.getElementById('ocrProgressBar');
-  var progressFill=document.getElementById('ocrProgressFill');
-  var statusText=document.getElementById('ocrStatusText');
+// ═══════════════════════════════════════
+// ADMIN: RENDER CHAPTER GRID
+// ═══════════════════════════════════════
+function renderAdminGrid(){
+  var g=document.getElementById('adminGrid');
+  g.innerHTML='';
+  CHAPTERS.forEach(function(ch){ g.appendChild(buildChCard(ch)); });
+  updateBadge();
+}
 
-  progressBar.style.display='block';
-  progressFill.style.width='0%';
-  statusText.textContent='Đang tải mô hình ngôn ngữ...';
+function buildChCard(ch){
+  var qs=bank[ch.id]||[];
+  var card=document.createElement('div');
+  card.className='ch-card';
+  card.setAttribute('data-ch',ch.id);
+  card.innerHTML=
+    '<div class="ch-head">'+
+      '<div class="ch-label">'+
+        '<div class="ch-num">'+ch.id+'</div>'+
+        '<div class="ch-name">'+ch.name+'</div>'+
+      '</div>'+
+      '<span class="ch-tag '+(ch.group==='req'?'tag-req':'tag-opt')+'">'+(ch.group==='req'?'Bắt buộc':'Nhóm 4/5')+'</span>'+
+    '</div>'+
+    '<div class="ch-stats">'+
+      '<div class="ch-stat"><div class="ch-stat-num" id="cnt-'+ch.id+'">'+qs.length+'</div><div class="ch-stat-lbl">Câu hỏi</div></div>'+
+      '<div class="ch-stat"><div class="ch-stat-num" id="icnt-'+ch.id+'">'+qs.filter(function(q){return q.img;}).length+'</div><div class="ch-stat-lbl">Có ảnh</div></div>'+
+    '</div>'+
+    '<div class="q-list" id="ql-'+ch.id+'"></div>'+
+    '<button class="btn-add" onclick="toggleAddForm('+ch.id+')">＋ Thêm câu hỏi</button>'+
+    '<div class="add-form" id="af-'+ch.id+'">'+
+      '<textarea class="f-textarea" id="qt-'+ch.id+'" placeholder="Nhập nội dung câu hỏi..." rows="3"></textarea>'+
+      '<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t3);">'+
+        '🖼️ Ảnh (tuỳ chọn):&nbsp;'+
+        '<label style="cursor:pointer;color:var(--blue);font-weight:500;">Chọn file'+
+          '<input type="file" accept="image/*" id="qi-'+ch.id+'" style="display:none;" onchange="previewName('+ch.id+')" />'+
+        '</label>'+
+        '<span id="qn-'+ch.id+'" style="color:#34d399;font-size:11px;"></span>'+
+      '</div>'+
+      '<div class="f-row">'+
+        '<button class="btn-fs" onclick="saveQ('+ch.id+')">✅ Lưu</button>'+
+        '<button class="btn-fc" onclick="toggleAddForm('+ch.id+')">Huỷ</button>'+
+      '</div>'+
+    '</div>';
+  renderQList(ch.id);
+  return card;
+}
 
-  try {
-    var result = await Tesseract.recognize(
-      ocrImageDataUrl,
-      ocrLang,
-      {
-        logger: function(m){
-          if(m.status==='recognizing text'){
-            var pct=Math.round((m.progress||0)*100);
-            progressFill.style.width=pct+'%';
-            statusText.textContent='Đang nhận dạng... '+pct+'%';
-          } else if(m.status==='loading tesseract core'){
-            statusText.textContent='Đang tải Tesseract...';
-          } else if(m.status==='initializing api'){
-            statusText.textContent='Đang khởi động OCR...';
-            progressFill.style.width='20%';
-          } else if(m.status==='loading language traineddata'){
-            statusText.textContent='Đang tải dữ liệu ngôn ngữ (lần đầu ~20MB)...';
-            progressFill.style.width='40%';
-          } else if(m.status==='initializing tesseract'){
-            statusText.textContent='Khởi tạo...';
-            progressFill.style.width='60%';
-          }
-        }
-      }
-    );
-
-    var rawText = result.data.text || '';
-
-    // Clean text if option checked
-    if(document.getElementById('cleanText').checked){
-      rawText = rawText
-        .replace(/[ \t]+\n/g, '\n')        // trailing spaces
-        .replace(/\n{3,}/g, '\n\n')         // multiple blank lines
-        .replace(/^\s+|\s+$/g, '')          // trim
-        .replace(/([^\n])\n([^\n])/g, '$1 $2'); // join broken lines
+function renderQList(chId){
+  var el=document.getElementById('ql-'+chId);
+  if(!el) return;
+  var qs=bank[chId]||[];
+  el.innerHTML='';
+  qs.forEach(function(q,i){
+    var item=document.createElement('div');
+    item.className='q-item';
+    var preview=q.txt?q.txt.substring(0,55)+(q.txt.length>55?'…':''):'(Câu hỏi hình ảnh)';
+    item.innerHTML=
+      '<div class="q-idx">'+(i+1)+'</div>'+
+      '<div class="q-txt">'+esc(preview)+'</div>'+
+      (q.img?'<span class="q-img-icon" title="Xem ảnh">🖼️</span>':'')+
+      '<button class="q-del" onclick="delQ('+chId+','+i+')" title="Xoá">🗑</button>';
+    if(q.img){
+      item.querySelector('.q-img-icon').addEventListener('click',function(){ viewImg(q.img); });
     }
+    el.appendChild(item);
+  });
+  var c=document.getElementById('cnt-'+chId); if(c) c.textContent=qs.length;
+  var ic=document.getElementById('icnt-'+chId); if(ic) ic.textContent=qs.filter(function(q){return q.img;}).length;
+}
 
-    document.getElementById('ocrResultText').value=rawText;
-    progressFill.style.width='100%';
-    statusText.textContent='✅ Quét xong! Kiểm tra và chỉnh sửa nếu cần.';
+function toggleAddForm(chId){
+  var f=document.getElementById('af-'+chId);
+  f.classList.toggle('show');
+  if(f.classList.contains('show')) document.getElementById('qt-'+chId).focus();
+}
 
-    if(rawText.trim()){
-      document.getElementById('btnOcrSave').disabled=false;
-      showToast('OCR hoàn thành! Kiểm tra văn bản trước khi lưu.','success');
-    } else {
-      statusText.textContent='⚠️ Không nhận được chữ. Thử ảnh rõ hơn hoặc đổi ngôn ngữ.';
-      showToast('Không nhận được chữ từ ảnh này.','error');
-    }
-  } catch(err){
-    console.error(err);
-    statusText.textContent='❌ Lỗi OCR: '+err.message;
-    showToast('Lỗi khi quét OCR: '+err.message,'error');
+function previewName(chId){
+  var inp=document.getElementById('qi-'+chId);
+  if(inp.files[0]) document.getElementById('qn-'+chId).textContent=inp.files[0].name;
+}
+
+function saveQ(chId){
+  var txtEl=document.getElementById('qt-'+chId);
+  var imgEl=document.getElementById('qi-'+chId);
+  var txt=txtEl.value.trim();
+  if(!txt && (!imgEl.files||!imgEl.files[0])){ toast('Vui lòng nhập câu hỏi hoặc chọn ảnh!','err'); return; }
+  var q={txt:txt,img:null,id:Date.now()};
+  if(imgEl.files && imgEl.files[0]){
+    var r=new FileReader();
+    r.onload=function(e){
+      q.img=e.target.result;
+      bank[chId].push(q); saveBank(); renderQList(chId); resetForm(chId);
+      toast('Đã thêm câu hỏi vào Chương '+chId+'!');
+    };
+    r.readAsDataURL(imgEl.files[0]);
+  } else {
+    bank[chId].push(q); saveBank(); renderQList(chId); resetForm(chId);
+    toast('Đã thêm câu hỏi vào Chương '+chId+'!');
+  }
+}
+
+function resetForm(chId){
+  document.getElementById('qt-'+chId).value='';
+  var imgEl=document.getElementById('qi-'+chId); imgEl.value='';
+  document.getElementById('qn-'+chId).textContent='';
+  document.getElementById('af-'+chId).classList.remove('show');
+}
+
+function delQ(chId,idx){
+  if(!confirm('Xoá câu hỏi này?')) return;
+  bank[chId].splice(idx,1); saveBank(); renderQList(chId);
+  toast('Đã xoá câu hỏi.','inf');
+}
+
+function viewImg(src){
+  document.getElementById('previewImg').src=src;
+  document.getElementById('imgModal').classList.add('show');
+}
+
+// ═══════════════════════════════════════
+// GENERATE EXAM
+// ═══════════════════════════════════════
+function generateExam(){
+  // Check availability
+  var missing=[];
+  [2,3,6,7].forEach(function(id){ if(!bank[id]||bank[id].length===0) missing.push('Chương '+id); });
+  var h4=bank[4]&&bank[4].length>0, h5=bank[5]&&bank[5].length>0;
+  if(!h4&&!h5) missing.push('Chương 4 hoặc 5');
+  if(missing.length){
+    toast('Chưa có câu hỏi: '+missing.join(', '),'err');
+    return;
   }
 
-  btn.innerHTML='🔍 Quét lại';
-  btn.disabled=false;
-}
-
-function saveOCRQuestion(){
-  if(!ocrChapterId){ showToast('Lỗi: không xác định được chương!','error'); return; }
-  var text=document.getElementById('ocrResultText').value.trim();
-  var keepImg=document.getElementById('keepImage').checked;
-
-  if(!text && !keepImg){ showToast('Không có gì để lưu!','error'); return; }
-
-  var q = {
-    text: text,
-    image: keepImg ? ocrImageDataUrl : null,
-    id: Date.now(),
-    source: 'ocr'
-  };
-
-  questionBank[ocrChapterId].push(q);
-  saveBank();
-  renderQuestionList(ocrChapterId);
-  closeModal('ocrModal');
-
-  var ch=CHAPTERS.find(function(c){ return c.id===ocrChapterId; });
-  showToast('Đã lưu câu hỏi OCR vào '+ch.name+'! 🎉','success');
-}
-
-// =====================================================
-// GENERATE EXAM
-// =====================================================
-var currentExam=null;
-
-function generateExam(){
-  var missing=[];
-  [2,3,6,7].forEach(function(chId){
-    if(!questionBank[chId]||questionBank[chId].length===0) missing.push('Chương '+chId);
+  // Pick questions
+  var picked=[];
+  [2,3,6,7].forEach(function(id){
+    var q=pickRandom(bank[id]);
+    picked.push(Object.assign({},q,{chId:id}));
   });
-  var has4=questionBank[4]&&questionBank[4].length>0;
-  var has5=questionBank[5]&&questionBank[5].length>0;
-  if(!has4&&!has5) missing.push('Chương 4 hoặc 5');
-  if(missing.length>0){ showToast('Thiếu câu hỏi cho: '+missing.join(', '),'error'); return; }
+  var optCh = (h4&&h5) ? (Math.random()<.5?4:5) : (h4?4:5);
+  picked.push(Object.assign({},pickRandom(bank[optCh]),{chId:optCh}));
+  picked.sort(function(a,b){ return [2,3,4,5,6,7].indexOf(a.chId)-[2,3,4,5,6,7].indexOf(b.chId); });
 
-  var examQuestions=[];
-  [2,3,6,7].forEach(function(chId){
-    var q=pickRandom(questionBank[chId]);
-    examQuestions.push(Object.assign({},q,{chapterId:chId}));
-  });
-  var chosenChId;
-  if(has4&&has5) chosenChId=Math.random()<0.5?4:5;
-  else if(has4) chosenChId=4;
-  else chosenChId=5;
-  examQuestions.push(Object.assign({},pickRandom(questionBank[chosenChId]),{chapterId:chosenChId}));
-  examQuestions.sort(function(a,b){ return [2,3,4,5,6,7].indexOf(a.chapterId)-[2,3,4,5,6,7].indexOf(b.chapterId); });
+  // Read config
+  var subject, school, time, year, code;
+  if(adminOpen){
+    saveCfg();
+    subject = document.getElementById('cfSubject').value.trim() || 'Môn học';
+    school  = document.getElementById('cfSchool').value.trim()  || 'Trường Đại học';
+    time    = document.getElementById('cfTime').value.trim()    || '90 phút';
+    year    = document.getElementById('cfYear').value.trim()    || '2025-2026';
+    code    = document.getElementById('cfCode').value.trim()    || padZ(Math.floor(Math.random()*999)+1);
+  } else {
+    subject = cfg.subject || 'Môn học';
+    school  = cfg.school  || 'Trường Đại học';
+    time    = cfg.time    || '90 phút';
+    year    = cfg.year    || '2025-2026';
+    code    = padZ(Math.floor(Math.random()*999)+1);
+  }
 
-  var code=document.getElementById('metaCode').value.trim()||padZero(Math.floor(Math.random()*999)+1);
-  var subject=document.getElementById('metaSubject').value.trim()||'Môn học';
-  var school=document.getElementById('metaSchool').value.trim()||'Trường Đại học';
-  var time=document.getElementById('metaTime').value.trim()||'90 phút';
-  var year=document.getElementById('metaYear').value.trim()||'2025-2026';
   var now=new Date();
-  var dateStr=now.getDate()+'/'+(now.getMonth()+1)+'/'+now.getFullYear();
+  var date=now.getDate()+'/'+(now.getMonth()+1)+'/'+now.getFullYear();
 
-  currentExam={examQuestions:examQuestions,code:code,subject:subject,school:school,time:time,year:year,dateStr:dateStr,chosenChId:chosenChId};
-  renderExamPaper(currentExam);
-  document.getElementById('examEmpty').style.display='none';
-  document.getElementById('examPreview').style.display='block';
-  showToast('Đã tạo đề thi mã '+code+' với '+examQuestions.length+' câu!');
+  currentExam={picked,subject,school,time,year,code,date,optCh};
+  renderPaper(currentExam);
+
+  // Update chips
+  document.getElementById('metaCodeChip').textContent='Mã đề: '+code;
+  document.getElementById('metaTimeChip').textContent=time;
+
+  // Show result
+  var res=document.getElementById('examResult');
+  res.style.display='block';
+  res.scrollIntoView({behavior:'smooth',block:'start'});
+
+  toast('Đề thi mã '+code+' đã được tạo!');
 }
 
-function renderExamPaper(exam){
-  var qs=exam.examQuestions;
-  var questionsHTML='';
-  qs.forEach(function(q,i){
-    var ch=CHAPTERS.find(function(c){ return c.id===q.chapterId; });
-    var color=ch.color;
-    var isOpt=ch.id===4||ch.id===5;
-    questionsHTML+=
-      '<div class="paper-question">'+
-        '<div class="paper-question-header">'+
-          '<span class="q-number">Câu '+(i+1)+'</span>'+
-          '<span class="q-chapter-badge" style="background:'+color+'22;color:'+color+';border:1px solid '+color+'44;">'+ch.name+(isOpt?' ★':'')+'</span>'+
-          '<span class="q-points">2,0 điểm</span>'+
+function renderPaper(ex){
+  var qsHTML='';
+  ex.picked.forEach(function(q,i){
+    var ch=CHAPTERS.find(function(c){return c.id===q.chId;});
+    var col=ch.color;
+    var isOpt=q.chId===4||q.chId===5;
+    qsHTML+=
+      '<div class="paper-q">'+
+        '<div class="paper-q-head">'+
+          '<span class="q-num">Câu '+(i+1)+'</span>'+
+          '<span class="q-badge" style="background:'+col+'1a;color:'+col+';border:1px solid '+col+'44;">'+ch.name+(isOpt?' ★':'')+'</span>'+
+          '<span class="q-pts">2,0 điểm</span>'+
         '</div>'+
-        '<div class="paper-question-content">'+
-          (q.text?'<div class="q-content-text">'+escapeHtml(q.text)+'</div>':'')+
-          (q.image?'<img class="q-content-img" src="'+q.image+'" alt="Hình câu '+(i+1)+'" />':'')+
+        '<div class="paper-q-body">'+
+          (q.txt?'<div class="q-text-content">'+esc(q.txt)+'</div>':'')+
+          (q.img?'<img class="q-img-content" src="'+q.img+'" alt="Hình câu '+(i+1)+'" />':'')+
         '</div>'+
       '</div>';
   });
 
   document.getElementById('examPaper').innerHTML=
     '<div class="paper-header">'+
-      '<div class="paper-school">'+escapeHtml(exam.school)+'</div>'+
-      '<div style="font-size:13px;color:#555;margin:5px 0;">ĐỀ THI KẾT THÚC HỌC PHẦN</div>'+
-      '<div class="paper-subject">'+escapeHtml(exam.subject)+'</div>'+
+      '<div class="paper-school">'+esc(ex.school)+'</div>'+
+      '<div style="font-size:12px;color:#6b7280;margin:4px 0;">ĐỀ THI KẾT THÚC HỌC PHẦN</div>'+
+      '<div class="paper-subject">'+esc(ex.subject)+'</div>'+
       '<div class="paper-info">'+
-        '<span>🗓️ Năm học: '+escapeHtml(exam.year)+'</span>'+
-        '<span>⏱️ Thời gian: '+escapeHtml(exam.time)+'</span>'+
-        '<span>📋 Mã đề: <strong>'+escapeHtml(exam.code)+'</strong></span>'+
-        '<span>📅 Ngày thi: '+exam.dateStr+'</span>'+
+        '<span>📅 Năm học: '+esc(ex.year)+'</span>'+
+        '<span>⏱️ Thời gian: '+esc(ex.time)+'</span>'+
+        '<span>📋 Mã đề: <strong>'+esc(ex.code)+'</strong></span>'+
+        '<span>🗓️ Ngày: '+ex.date+'</span>'+
       '</div>'+
     '</div>'+
     '<div class="student-row">'+
@@ -793,57 +827,46 @@ function renderExamPaper(exam){
       '<div class="student-field"><label>Lớp</label><div class="field-line"></div></div>'+
       '<div class="student-field"><label>Chữ ký sinh viên</label><div class="field-line"></div></div>'+
     '</div>'+
-    '<div style="background:#fff8e6;border:1px solid #f59e0b44;border-radius:7px;padding:11px 15px;margin-bottom:22px;font-size:13px;color:#555;">'+
-      '<strong>⚠️ Lưu ý:</strong> Sinh viên không được sử dụng tài liệu. Đề thi gồm <strong>5 câu</strong>, mỗi câu <strong>2,0 điểm</strong>. '+
-      (exam.chosenChId?'Nhóm 4/5 được chọn từ <strong>Chương '+exam.chosenChId+'</strong>.':'')+
+    '<div class="note-box">'+
+      '<strong>⚠️ Lưu ý:</strong> Không sử dụng tài liệu. Đề gồm <strong>5 câu × 2,0 điểm = 10 điểm</strong>. '+
+      'Câu nhóm Chương 4/5 lấy từ <strong>Chương '+ex.optCh+'</strong>.'+
     '</div>'+
-    '<div class="paper-questions">'+questionsHTML+'</div>'+
-    '<div class="paper-footer">——— Hết đề • Mã đề '+escapeHtml(exam.code)+' ———<br><span style="font-size:11px;">ExamGen Pro • '+exam.dateStr+'</span></div>';
+    '<div class="paper-questions">'+qsHTML+'</div>'+
+    '<div class="paper-footer">——— Hết đề • Mã đề '+esc(ex.code)+' ———<br>'+
+      '<span style="font-size:11px;color:#d1d5db;">25251134 · Nhóm 12</span></div>';
 }
 
-// =====================================================
-// EXPORT PDF
-// =====================================================
+// ═══════════════════════════════════════
+// PDF EXPORT
+// ═══════════════════════════════════════
 async function exportPDF(){
-  if(!currentExam){ showToast('Hãy tạo đề thi trước!','error'); return; }
+  if(!currentExam){ toast('Hãy tạo đề thi trước!','err'); return; }
   var btn=document.getElementById('btnPdf');
-  var orig=btn.innerHTML;
-  btn.innerHTML='<div class="spinner"></div> Đang xuất...';
-  btn.disabled=true;
+  var orig=btn.innerHTML; btn.innerHTML='<div class="spinner"></div> Đang xuất...'; btn.disabled=true;
   try {
     var paper=document.getElementById('examPaper');
-    var canvas=await html2canvas(paper,{ scale:2, useCORS:true, backgroundColor:'#ffffff', logging:false, allowTaint:true });
-    var imgData=canvas.toDataURL('image/png');
+    var canvas=await html2canvas(paper,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false,allowTaint:true});
     var pdf=new window.jspdf.jsPDF('p','mm','a4');
-    var pW=210, pH=297, mx=10, my=10, cW=pW-mx*2;
-    var iW=canvas.width, iH=canvas.height;
-    var iHmm=(iH/iW)*cW;
-    var yOff=my, remH=iHmm, srcY=0, pcH=pH-my*2;
-    while(remH>0){
-      var slHmm=Math.min(pcH,remH);
-      var slHpx=Math.round((slHmm/iHmm)*iH);
-      var sc=document.createElement('canvas');
-      sc.width=iW; sc.height=slHpx;
-      sc.getContext('2d').drawImage(canvas,0,srcY,iW,slHpx,0,0,iW,slHpx);
-      pdf.addImage(sc.toDataURL('image/png'),'PNG',mx,yOff,cW,slHmm);
-      remH-=slHmm; srcY+=slHpx;
-      if(remH>0){ pdf.addPage(); yOff=my; }
+    var mx=10,my=10,cW=190,iW=canvas.width,iH=canvas.height,iHmm=(iH/iW)*cW;
+    var yOff=my,rem=iHmm,srcY=0,pcH=277;
+    while(rem>0){
+      var slMm=Math.min(pcH,rem),slPx=Math.round((slMm/iHmm)*iH);
+      var sc=document.createElement('canvas'); sc.width=iW; sc.height=slPx;
+      sc.getContext('2d').drawImage(canvas,0,srcY,iW,slPx,0,0,iW,slPx);
+      pdf.addImage(sc.toDataURL('image/png'),'PNG',mx,yOff,cW,slMm);
+      rem-=slMm; srcY+=slPx;
+      if(rem>0){ pdf.addPage(); yOff=my; }
     }
-    var fname='DeThi_'+(currentExam.subject||'MonHoc').replace(/\s+/g,'_')+'_Ma'+currentExam.code+'_'+new Date().toLocaleDateString('vi-VN').replace(/\//g,'-')+'.pdf';
-    pdf.save(fname);
-    showToast('Xuất PDF thành công! 🎉');
-  } catch(err){
-    console.error(err);
-    showToast('Lỗi xuất PDF: '+err.message,'error');
-  }
+    pdf.save('DeThi_'+currentExam.subject.replace(/\s+/g,'_')+'_Ma'+currentExam.code+'.pdf');
+    toast('Xuất PDF thành công! 🎉');
+  } catch(e){ toast('Lỗi xuất PDF: '+e.message,'err'); console.error(e); }
   btn.innerHTML=orig; btn.disabled=false;
 }
 
-// =====================================================
+// ═══════════════════════════════════════
 // INIT
-// =====================================================
-renderChapterGrid();
-updateStats();
+// ═══════════════════════════════════════
+updateBadge();
 </script>
 </body>
 </html>
