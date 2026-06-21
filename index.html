@@ -496,6 +496,7 @@
     <div class="admin-header-bar">
       <div class="admin-badge">🔐 Chế độ quản trị</div>
       <div style="display:flex;gap:10px;">
+        <button class="btn-sm btn-regen" style="background:rgba(239,68,68,.15);color:#fca5a5;" onclick="deleteAllData()" title="Xoá sạch toàn bộ câu hỏi trong tất cả các chương">🗑 Xoá tất cả</button>
         <label class="btn-sm btn-regen" style="background:rgba(245,158,11,.15);color:#fcd34d;cursor:pointer;" title="Chọn thư mục 'image' chứa các thư mục con c2, c3... để nạp tự động toàn bộ ảnh (lưu đường dẫn, không gây nặng máy)">
           📂 Nạp từ thư mục
           <input type="file" webkitdirectory directory multiple style="display:none;" onchange="importFolder(event)" />
@@ -1185,6 +1186,14 @@ function importFolder(event){
   } else {
     toast('Không tìm thấy ảnh nào trong các thư mục con c2...c7', 'err');
   }
+}
+
+function deleteAllData(){
+  if(!confirm('⚠️ BẠN CÓ CHẮC CHẮN MUỐN XOÁ TOÀN BỘ CÂU HỎI?\n\nHành động này không thể hoàn tác!')) return;
+  CHAPTERS.forEach(function(c){ bank[c.id] = []; });
+  saveBank();
+  renderAdminGrid();
+  toast('Đã xoá sạch toàn bộ dữ liệu! 🗑️', 'inf');
 }
 
 // INIT
